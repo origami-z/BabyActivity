@@ -10,51 +10,78 @@ import SwiftData
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
+    @Query(sort: \Activity.timestamp, order: .reverse) private var activities: [Activity]
+    @State private var path = [Activity]()
+
 
     var body: some View {
-        NavigationSplitView {
+        NavigationStack(path: $path) {
+            HStack {
+                Button("Sleep", systemImage: "zzz") {
+                    addSleepActivity()
+                }.buttonStyle(.borderedProminent)
+                
+                Button("Milk", systemImage: "backpack.circle") {
+                    addMilkActivity()
+                }.buttonStyle(.borderedProminent)
+                
+                Button("Wet", systemImage: "toilet") {
+                    addWetDiaperActivity()
+                }.buttonStyle(.borderedProminent)
+                
+                Button("Dirty", systemImage: "tornado") {
+                    addDirtyDiaperActivity()
+                }.buttonStyle(.borderedProminent)
+            }
+            
             List {
-                ForEach(items) { item in
+                ForEach(activities) { activity in
                     NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
+                        EditActivityView(activity: activity)
                     } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
+                        ActivityListItemView(activity: activity)
                     }
                 }
                 .onDelete(perform: deleteItems)
             }
-#if os(macOS)
-            .navigationSplitViewColumnWidth(min: 180, ideal: 200)
-#endif
-            .toolbar {
-#if os(iOS)
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-#endif
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
-                    }
-                }
-            }
-        } detail: {
-            Text("Select an item")
+            .navigationTitle("Activities")
         }
     }
 
-    private func addItem() {
+    private func addSleepActivity() {
         withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
+            let newActivity = Activity(timestamp: Date(), data: ActivityData.sleep(endAt: Date()))
+            modelContext.insert(newActivity)
+            path = [newActivity]
+        }
+    }
+    
+    private func addMilkActivity() {
+        withAnimation {
+            let newActivity = Activity(timestamp: Date(), data: ActivityData.milk(endAt: Date(), amount: 0))
+            modelContext.insert(newActivity)
+            path = [newActivity]
+        }
+    }
+    
+    private func addWetDiaperActivity() {
+        withAnimation {
+            let newActivity = Activity(timestamp: Date(), data: ActivityData.diaperChange(dirty: false))
+            modelContext.insert(newActivity)
+        }
+    }
+    
+    private func addDirtyDiaperActivity() {
+        withAnimation {
+            let newActivity = Activity(timestamp: Date(), data: ActivityData.diaperChange(dirty: true))
+            modelContext.insert(newActivity)
         }
     }
 
     private func deleteItems(offsets: IndexSet) {
         withAnimation {
             for index in offsets {
-                modelContext.delete(items[index])
+                modelContext.delete(activities[index])
             }
         }
     }
@@ -62,5 +89,5 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
+        .modelContainer(DataController.previewContainer)
 }
