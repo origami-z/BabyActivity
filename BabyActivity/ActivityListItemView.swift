@@ -10,12 +10,15 @@ import SwiftUI
 struct ActivityListItemView: View {
     @Bindable var activity: Activity
     
-    var formatter = RelativeDateTimeFormatter() {
-        didSet { formatter.unitsStyle = .abbreviated }
-    }
+    let formatter: RelativeDateTimeFormatter = {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .abbreviated
+        return formatter
+    }()
     
     var body: some View {
             HStack {
+                Image(systemName: activity.image).symbolRenderingMode(.palette)
                 Text(activity.shortDisplay)
                 Spacer()
                 Text(activity.timestamp, formatter: formatter)

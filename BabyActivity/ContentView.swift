@@ -17,19 +17,19 @@ struct ContentView: View {
     var body: some View {
         NavigationStack(path: $path) {
             HStack {
-                Button("Sleep", systemImage: "zzz") {
+                Button("Sleep", systemImage: Activity.sleepImage) {
                     addSleepActivity()
                 }.buttonStyle(.borderedProminent)
                 
-                Button("Milk", systemImage: "backpack.circle") {
+                Button("Milk", systemImage: Activity.milkImage) {
                     addMilkActivity()
                 }.buttonStyle(.borderedProminent)
                 
-                Button("Wet", systemImage: "toilet") {
+                Button("Wet", systemImage: Activity.wetDiaperImage) {
                     addWetDiaperActivity()
                 }.buttonStyle(.borderedProminent)
                 
-                Button("Dirty", systemImage: "tornado") {
+                Button("Dirty", systemImage: Activity.dirtyDiaperImage) {
                     addDirtyDiaperActivity()
                 }.buttonStyle(.borderedProminent)
             }
@@ -52,7 +52,7 @@ struct ContentView: View {
         withAnimation {
             let newActivity = Activity(timestamp: Date(), data: ActivityData.sleep(endAt: Date()))
             modelContext.insert(newActivity)
-            path = [newActivity]
+            //path = [newActivity]
         }
     }
     
@@ -60,7 +60,7 @@ struct ContentView: View {
         withAnimation {
             let newActivity = Activity(timestamp: Date(), data: ActivityData.milk(endAt: Date(), amount: 0))
             modelContext.insert(newActivity)
-            path = [newActivity]
+            //path = [newActivity]
         }
     }
     

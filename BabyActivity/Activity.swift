@@ -32,8 +32,7 @@ extension Activity {
         switch data {
         case .sleep: return "sleep"
         case .milk: return "milk"
-        case .diaperChange(dirty: false): return "wet diaper"
-        case .diaperChange(dirty: true): return "dirty diaper"
+        case .diaperChange: return "diaper"
         }
     }
     
@@ -43,6 +42,20 @@ extension Activity {
         case .milk(_, let amount): return "Milk \(amount)ml"
         case .diaperChange(dirty: false): return "Wet diaper"
         case .diaperChange(dirty: true): return "Dirty diaper"
+        }
+    }
+    
+    static var sleepImage: String = "zzz"
+    static var milkImage: String = "backpack.circle"
+    static var wetDiaperImage: String = "toilet"
+    static var dirtyDiaperImage: String = "tornado"
+    
+    var image: String {
+        switch data {
+        case .sleep: return Activity.sleepImage
+        case .milk: return Activity.milkImage
+        case .diaperChange(dirty: false): return Activity.wetDiaperImage
+        case .diaperChange(dirty: true): return Activity.dirtyDiaperImage
         }
     }
 }
