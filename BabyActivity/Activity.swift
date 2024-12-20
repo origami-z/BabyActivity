@@ -24,6 +24,7 @@ final class Activity {
     init(timestamp: Date, data: ActivityData) {
         self.timestamp = timestamp
         self.data = data
+        
     }
 }
 
@@ -38,7 +39,7 @@ extension Activity {
     
     var shortDisplay: String {
         switch data {
-        case .sleep(let endAt): return "Sleep \(Duration.seconds(endAt.timeIntervalSince(timestamp)).formatted(.units(allowed: [.minutes, .seconds, .milliseconds], width: .condensedAbbreviated)))"
+        case .sleep(let endAt): return "Sleep \(Duration.seconds(endAt.timeIntervalSince(timestamp)).formatted(.units(allowed: [.hours, .minutes], width: .condensedAbbreviated)))"
         case .milk(_, let amount): return "Milk \(amount)ml"
         case .diaperChange(dirty: false): return "Wet diaper"
         case .diaperChange(dirty: true): return "Dirty diaper"
@@ -56,6 +57,14 @@ extension Activity {
         case .milk: return Activity.milkImage
         case .diaperChange(dirty: false): return Activity.wetDiaperImage
         case .diaperChange(dirty: true): return Activity.dirtyDiaperImage
+        }
+    }
+    
+    var unwrapEndAt: Date? {
+        switch data {
+        case .sleep(endAt: let endAt): return endAt
+        case .milk(endAt: let endAt, _): return endAt
+        default: return nil
         }
     }
 }

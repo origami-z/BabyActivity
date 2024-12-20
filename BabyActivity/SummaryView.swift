@@ -9,10 +9,40 @@ import SwiftUI
 
 struct SummaryView: View {
     var body: some View {
-        Text(/*@START_MENU_TOKEN@*/"Hello, World!"/*@END_MENU_TOKEN@*/)
+        NavigationStack {
+            List {
+                NavigationLink {
+                    SleepSummaryView()
+                } label: {
+                    VStack(alignment: .leading) {
+                        Text("Sleep")
+                        Text("Todo daily summary")
+                    }
+                }
+                NavigationLink {
+                    Text("Todo Milk detail")
+                } label: {
+                    VStack(alignment: .leading) {
+                        Text("Milk")
+                        Text("Todo daily summary")
+                    }
+                }
+                NavigationLink {
+                    Text("Todo diaper detail")
+                } label: {
+                    VStack(alignment: .leading) {
+                        Text("Diaper")
+                        Text("Todo daily summary")
+                    }
+                }
+            }
+            .navigationTitle("Summary")
+        }
     }
 }
 
 #Preview {
-    SummaryView()
+    NavigationStack {
+        SummaryView()
+    }
 }

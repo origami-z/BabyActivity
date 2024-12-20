@@ -78,6 +78,9 @@ struct EditActivityView: View {
                     Text("ml").foregroundStyle(.secondary)
                 }
             }
+            .onChange(of: numberProxy) {
+                activity.data = .milk(endAt: dateProxy, amount: numberProxy)
+            }
         case .diaperChange:
             DatePicker("At", selection: $activity.timestamp)
             Picker("Kind", selection: $boolProxy) {
@@ -86,6 +89,7 @@ struct EditActivityView: View {
                 Text("Dirty")
                     .tag(true)
             }
+            .pickerStyle(.segmented)
             .onSubmit {
                 activity.data = .diaperChange(dirty: boolProxy)
             }
