@@ -87,25 +87,37 @@ struct SleepSummaryView: View {
         DynamicQuery(dateRangeDescriptor) { activities in
             
             let sleepActivities = activities.filter { $0.kind == .sleep }
+            let sleepData = DataController.sliceDataToPlot(sleepActivities: sleepActivities)
             
             let startOfToday = Calendar.current.startOfDay(for: Date())
             
+            // TODO: fix average "day" includes 2 days
+            let averageSleepTime = DataController.averageDurationPerDay(sleepData)
+            
+            let tmv = timeval(tv_sec: Int(averageSleepTime), tv_usec: 0)
+            
+            VStack {
+                Text("AVG TIME")
+                Text(Duration(tmv)
+                    .formatted(.time(pattern: .hourMinute)))
+            }
+            
             Chart {
-                ForEach(sleepActivities) { activity in
+                ForEach(sleepData) { data in
                     
-                    let activityStartOfDay = Calendar.current.startOfDay(for: activity.timestamp)
+                    let activityStartOfDay = Calendar.current.startOfDay(for: data.start)
                     let intervalToAdd = startOfToday.timeIntervalSince(activityStartOfDay)
                     // let _ = print(activity.timestamp, intervalToAdd)
                     
                     BarMark(
-                        x: .value("Date", activity.timestamp, unit: .day),
+                        x: .value("Date", data.start, unit: .day),
                         // Option 1: Straight Date plot, y axis extend across multiple date
 //                        yStart: .value("Start time",  activity.timestamp, unit: .hour),
 //                        yEnd: .value("Start time",  activity.unwrapEndAt!, unit: .hour)
                         
                         // Option 2:  A hack: Shift activity date to today
-                        yStart: .value("Start time",  activity.timestamp.addingTimeInterval(intervalToAdd), unit: .hour),
-                        yEnd: .value("Start time",  activity.endTimestamp!.addingTimeInterval(intervalToAdd), unit: .hour)
+                        yStart: .value("Start time",  data.start.addingTimeInterval(intervalToAdd), unit: .hour),
+                        yEnd: .value("End time",  data.end.addingTimeInterval(intervalToAdd), unit: .hour)
                         // Option 3:  TimeInterval from start of day involves manual calculation / time formatting, may also miss range that cross-over midnight
 //                        yStart: .value("Start time",  activity.timestamp.timeIntervalSince(Calendar.current.startOfDay(for:activity.timestamp))),
 //                        yEnd: .value("Start time",  activity.unwrapEndAt!.timeIntervalSince(Calendar.current.startOfDay(for:activity.unwrapEndAt!)))
@@ -121,7 +133,8 @@ struct SleepSummaryView: View {
             // Option 3: manual assignment of time
             //  .chartYScale(domain: 0...24 * 60 * 60)
             .chartYAxis {
-                AxisMarks(values: .stride(by: .hour, count: 4)) { value in
+                AxisMarks(values: .stride(by: .hour, count: 2)) { value in
+                    let _ = print("AxisMarks \(value)")
                     if let date = value.as(Date.self) {
                         // let hour = Calendar.current.component(.hour, from: date)
 
