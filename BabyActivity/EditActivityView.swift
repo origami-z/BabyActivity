@@ -7,12 +7,32 @@
 
 import SwiftUI
 
+// https://stackoverflow.com/a/57041232
+extension Optional where Wrapped == Date {
+    var _bound: Date? {
+        get {
+            return self
+        }
+        set {
+            self = newValue
+        }
+    }
+    public var bound: Date {
+        get {
+            return _bound ?? Date(timeIntervalSince1970: 0)
+        }
+        set {
+            _bound = newValue.timeIntervalSince1970 == 0 ? nil : newValue
+        }
+    }
+}
+
 struct EditActivityView: View {
     @Bindable var activity: Activity
     
-    @State var dateProxy: Date = Date()
-    @State var numberProxy: Int = 0
-    @State var boolProxy: Bool = false
+//    @State var dateProxy: Date = Date()
+//    @State var numberProxy: Int = 0
+//    @State var boolProxy: Bool = false
     
     let formatter: DateComponentsFormatter = {
         let formatter = DateComponentsFormatter()
@@ -25,78 +45,77 @@ struct EditActivityView: View {
         Form {
             specificEdits
         }
-        .onAppear {
-            switch activity.data {
-            case .sleep(let endAt):
-                dateProxy = endAt
-            case .milk(let endAt, let amount):
-                dateProxy = endAt
-                numberProxy = amount
-            case .diaperChange(let dirty):
-                boolProxy = dirty
-                break
-                
-            }
-        }
+//        .onAppear {
+//            switch activity.data {
+//            case .sleep(let endAt):
+//                dateProxy = endAt
+//            case .milk(let endAt, let amount):
+//                dateProxy = endAt
+//                numberProxy = amount
+//            case .diaperChange(let dirty):
+//                boolProxy = dirty
+//                break
+//                
+//            }
+//        }
         .navigationTitle("Edit \(activity.kind)")
         .navigationBarTitleDisplayMode(.inline)
     }
     
     @ViewBuilder var specificEdits: some View {
         
-        switch activity.data {
-        case .sleep(let endAt):
+        switch activity.kind {
+        case .sleep:
             DatePicker("Start At", selection: $activity.timestamp)
-            DatePicker("Wake up", selection: $dateProxy)
-                .onChange(of: dateProxy) {
-                    activity.data = .sleep(endAt: dateProxy)
-                }
+            
+            DatePicker(
+                "Wake up",
+//                selection: $activity.endTimestamp
+                selection: Binding<Date>(get: {activity.endTimestamp ?? Date(timeIntervalSince1970: 0)}, set: {activity.endTimestamp = $0})
+            )
+//                .onChange(of: dateProxy) {
+//                    activity.data = .sleep(endAt: dateProxy)
+//                }
             HStack {
                 Text("Length")
                 Spacer()
-                Text(formatter.string(from: activity.timestamp, to: endAt) ?? "0")
+                Text(formatter.string(from: activity.timestamp, to: activity.endTimestamp ?? Date(timeIntervalSince1970: 0)) ?? "0")
             }
-        case .milk(let endAt, _):
+        case .milk:
             DatePicker("Start At", selection: $activity.timestamp)
-            DatePicker("Finish at", selection: $dateProxy)
-                .onChange(of: dateProxy) {
-                    activity.data = .milk(endAt: dateProxy, amount: numberProxy)
-                }
+            DatePicker("Finish at", selection: Binding<Date>(get: {activity.endTimestamp ?? Date(timeIntervalSince1970: 0)}, set: {activity.endTimestamp = $0}))
+//                .onChange(of: dateProxy) {
+//                    activity.data = .milk(endAt: dateProxy, amount: numberProxy)
+//                }
             HStack {
                 Text("Length")
                 Spacer()
-                Text(formatter.string(from: activity.timestamp, to: endAt) ?? "0")
+                Text(formatter.string(from: activity.timestamp, to: activity.endTimestamp ?? Date(timeIntervalSince1970: 0)) ?? "0")
             }
-            Stepper(value: $numberProxy, in: 5...300, step: 5) {
+            Stepper(value: Binding<Int>(get: {activity.amount ?? 0}, set: {activity.amount = $0}), in: 5...300, step: 5) {
                 HStack {
                     Text("Amount")
-                    TextField("Amount", value: $numberProxy, format: .number)
+                    TextField("Amount", value: $activity.amount, format: .number)
                         .fixedSize()
-                        .onSubmit {
-                            activity.data = .milk(endAt: dateProxy, amount: numberProxy)
-                        }
+//                        .onSubmit {
+//                            activity.data = .milk(endAt: dateProxy, amount: numberProxy)
+//                        }
                     Text("ml").foregroundStyle(.secondary)
                 }
             }
-            .onChange(of: numberProxy) {
-                activity.data = .milk(endAt: dateProxy, amount: numberProxy)
-            }
-        case .diaperChange:
+//            .onChange(of: numberProxy) {
+//                activity.data = .milk(endAt: dateProxy, amount: numberProxy)
+//            }
+        case .dirtyDiaper:
             DatePicker("At", selection: $activity.timestamp)
-            Picker("Kind", selection: $boolProxy) {
-                Text("Wet")
-                    .tag(false)
-                Text("Dirty")
-                    .tag(true)
-            }
-            .pickerStyle(.segmented)
-            .onSubmit {
-                activity.data = .diaperChange(dirty: boolProxy)
-            }
+            
+        case .wetDiaper:
+            DatePicker("At", selection: $activity.timestamp)
         }
+    }
     
 }
-}
+
 
 #Preview("Sleep") {
     NavigationStack {
@@ -110,9 +129,15 @@ struct EditActivityView: View {
     }
 }
 
-#Preview("Diaper") {
+#Preview("Wet Diaper") {
     NavigationStack {
-        EditActivityView(activity: DataController.diaperAcitivity)
+        EditActivityView(activity: DataController.wetDiaperActivity)
+    }
+}
+
+#Preview("Dirty Diaper") {
+    NavigationStack {
+        EditActivityView(activity: DataController.dirtyDiaperActivity)
     }
 }
 

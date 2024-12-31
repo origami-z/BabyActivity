@@ -8,41 +8,66 @@
 import Foundation
 import SwiftData
 
-public enum ActivityData: Equatable, Sendable, Codable {
-    case sleep(endAt: Date)
-    case milk(endAt: Date, amount: Int)
-    case diaperChange(dirty: Bool)
+public enum ActivityKind: String, Equatable, Sendable, Codable {
+    case sleep
+    case milk
+    case wetDiaper
+    case dirtyDiaper
 }
+
+extension ActivityKind: CustomStringConvertible {
+    public var description: String {
+        switch self {
+        case .sleep: return "sleep"
+        case .milk: return "milk"
+        case .wetDiaper: return "wet diaper"
+        case .dirtyDiaper: return "dirty diaper"
+        }
+    }
+}
+
 
 
 @Model
 final class Activity {
     var timestamp: Date
     
-    var data: ActivityData
+    var kind: ActivityKind
     
-    init(timestamp: Date, data: ActivityData) {
+    // below properties depends on kind above
+    var endTimestamp: Date?
+    var amount: Int?
+    
+    init(kind: ActivityKind, timestamp: Date, endTimestamp: Date?, amount: Int?) {
         self.timestamp = timestamp
-        self.data = data
-        
+        self.kind = kind
+        self.endTimestamp = endTimestamp
+        self.amount = amount
     }
+    
+    // diaper
+    convenience init(kind: ActivityKind, timestamp: Date) {
+        self.init(kind: kind, timestamp: timestamp, endTimestamp: nil, amount: nil)
+    }
+    
+    // sleep
+    convenience init(kind: ActivityKind, timestamp: Date, endTimestamp: Date) {
+        self.init(kind: kind, timestamp: timestamp, endTimestamp: endTimestamp, amount: nil)
+    }
+    
+    // milk
+//    convenience init(kind: ActivityKind, timestamp: Date, endTimestamp: Date, amount: Int) {
+//        self.init(kind: kind, timestamp: timestamp, endTimestamp: endTimestamp, amount: amount)
+//    }
 }
 
 extension Activity {
-    var kind: String {
-        switch data {
-        case .sleep: return "sleep"
-        case .milk: return "milk"
-        case .diaperChange: return "diaper"
-        }
-    }
-    
     var shortDisplay: String {
-        switch data {
-        case .sleep(let endAt): return "Sleep \(Duration.seconds(endAt.timeIntervalSince(timestamp)).formatted(.units(allowed: [.hours, .minutes], width: .condensedAbbreviated)))"
-        case .milk(_, let amount): return "Milk \(amount)ml"
-        case .diaperChange(dirty: false): return "Wet diaper"
-        case .diaperChange(dirty: true): return "Dirty diaper"
+        switch kind {
+        case .sleep: return "Sleep \(Duration.seconds(endTimestamp?.timeIntervalSince(timestamp) ?? 0).formatted(.units(allowed: [.hours, .minutes], width: .condensedAbbreviated)))"
+        case .milk: return "Milk \(amount ?? 0)ml"
+        case .wetDiaper: return "Wet diaper"
+        case .dirtyDiaper: return "Dirty diaper"
         }
     }
     
@@ -52,19 +77,11 @@ extension Activity {
     static var dirtyDiaperImage: String = "tornado"
     
     var image: String {
-        switch data {
+        switch kind {
         case .sleep: return Activity.sleepImage
         case .milk: return Activity.milkImage
-        case .diaperChange(dirty: false): return Activity.wetDiaperImage
-        case .diaperChange(dirty: true): return Activity.dirtyDiaperImage
-        }
-    }
-    
-    var unwrapEndAt: Date? {
-        switch data {
-        case .sleep(endAt: let endAt): return endAt
-        case .milk(endAt: let endAt, _): return endAt
-        default: return nil
+        case .wetDiaper: return Activity.wetDiaperImage
+        case .dirtyDiaper: return Activity.dirtyDiaperImage
         }
     }
 }

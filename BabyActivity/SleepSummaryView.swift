@@ -30,7 +30,7 @@ extension ViewByOption {
     var chartXAxisCount: Int {
         switch self {
         case .day:
-            return 4
+            return 1
         case .week:
             return 7
         case .month:
@@ -65,10 +65,12 @@ struct SleepSummaryView: View {
         let dateRange = viewByOption.dateRange
         let startDate = dateRange.lowerBound
         let endDate = dateRange.upperBound
-        
+
         let predicate = #Predicate<Activity> { activity in
             // data is enum, can't be used in query, only filter by time (start time)
-            return activity.timestamp >= startDate && activity.timestamp <= endDate
+            // can't query .kind enum here, or it will crash at runtime
+            // has to use flatMap here, force unwrap doesn't work in predicate..?
+            return activity.endTimestamp.flatMap{ $0 >= startDate} == true && activity.timestamp <= endDate
         }
         return FetchDescriptor<Activity>(predicate: predicate, sortBy: [SortDescriptor(\Activity.timestamp)])
     }
@@ -83,12 +85,8 @@ struct SleepSummaryView: View {
         .pickerStyle(.segmented)
         
         DynamicQuery(dateRangeDescriptor) { activities in
-            let sleepActivities = activities.filter { activity in
-                switch activity.data {
-                    case .sleep: return true
-                    default: return false
-                }
-            }
+            
+            let sleepActivities = activities.filter { $0.kind == .sleep }
             
             let startOfToday = Calendar.current.startOfDay(for: Date())
             
@@ -107,7 +105,7 @@ struct SleepSummaryView: View {
                         
                         // Option 2:  A hack: Shift activity date to today
                         yStart: .value("Start time",  activity.timestamp.addingTimeInterval(intervalToAdd), unit: .hour),
-                        yEnd: .value("Start time",  activity.unwrapEndAt!.addingTimeInterval(intervalToAdd), unit: .hour)
+                        yEnd: .value("Start time",  activity.endTimestamp!.addingTimeInterval(intervalToAdd), unit: .hour)
                         // Option 3:  TimeInterval from start of day involves manual calculation / time formatting, may also miss range that cross-over midnight
 //                        yStart: .value("Start time",  activity.timestamp.timeIntervalSince(Calendar.current.startOfDay(for:activity.timestamp))),
 //                        yEnd: .value("Start time",  activity.unwrapEndAt!.timeIntervalSince(Calendar.current.startOfDay(for:activity.unwrapEndAt!)))
@@ -125,7 +123,7 @@ struct SleepSummaryView: View {
             .chartYAxis {
                 AxisMarks(values: .stride(by: .hour, count: 4)) { value in
                     if let date = value.as(Date.self) {
-                        let hour = Calendar.current.component(.hour, from: date)
+                        // let hour = Calendar.current.component(.hour, from: date)
 
                         AxisValueLabel(format: .dateTime.hour().minute())
                     }

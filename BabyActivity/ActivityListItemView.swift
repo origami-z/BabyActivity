@@ -33,7 +33,8 @@ struct ActivityListItemView: View {
     VStack {
         ActivityListItemView(activity: DataController.sleepAcitivity)
         ActivityListItemView(activity: DataController.milkAcitivity)
-        ActivityListItemView(activity: DataController.diaperAcitivity)
+        ActivityListItemView(activity: DataController.wetDiaperActivity)
+        ActivityListItemView(activity: DataController.dirtyDiaperActivity)
     }
 }
 
