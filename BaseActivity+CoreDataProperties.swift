@@ -16,10 +16,24 @@ extension BaseActivity {
         return NSFetchRequest<BaseActivity>(entityName: "BaseActivity")
     }
 
-    @NSManaged public var timestamp: Date?
+    @NSManaged public var timestamp: Date
 
 }
 
 extension BaseActivity : Identifiable {
 
+}
+
+extension BaseActivity {
+    @objc func getKind() -> String { // todo, change to enum..?, or add kind to persistent as Int32?
+        preconditionFailure("This method must be overridden")
+    }
+    
+    @objc func getImage() -> String {
+        preconditionFailure("This method must be overridden")
+    }
+    
+    @objc func getShortDescription() -> String {
+        preconditionFailure("This method must be overridden")
+    }
 }

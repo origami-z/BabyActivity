@@ -6,35 +6,42 @@
 //
 
 import SwiftUI
+import CoreData
 
 struct ActivityListItemView: View {
-    @Bindable var activity: Activity
-    
-    let formatter: RelativeDateTimeFormatter = {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .abbreviated
-        return formatter
-    }()
+    @ObservedObject var activity: BaseActivity
     
     var body: some View {
             HStack {
-                Image(systemName: activity.image).symbolRenderingMode(.palette)
-                Text(activity.shortDisplay)
+                Image(systemName: activity.getImage()).symbolRenderingMode(.palette)
+                Text(activity.getShortDescription())
                 Spacer()
-                Text(activity.timestamp, formatter: formatter)
+                Text(activity.timestamp, formatter: Formatters.relativeDateFormatter)
             }
     }
 }
 
 #Preview("Sleep") {
-        ActivityListItemView(activity: DataController.sleepAcitivity)
+    ActivityListItemView(activity: PersistenceController.sleepActivityPreview)
 }
-#Preview("All") {
-    VStack {
-        ActivityListItemView(activity: DataController.sleepAcitivity)
-        ActivityListItemView(activity: DataController.milkAcitivity)
-        ActivityListItemView(activity: DataController.wetDiaperActivity)
-        ActivityListItemView(activity: DataController.dirtyDiaperActivity)
-    }
-}
+
+//// Pre-set demonstration data
+//extension PersistenceController {
+//    var sampleItem: Item {
+//        let context = Self.shared.previewInMemory.viewContext
+//        let item = Item(context: context)
+//        item.timestamp = Date().addingTimeInterval(30000000)
+//        return item
+//    }
+//}
+
+
+//#Preview("All") {
+//    VStack {
+//        ActivityListItemView(activity: DataController.sleepAcitivity)
+//        ActivityListItemView(activity: DataController.milkAcitivity)
+//        ActivityListItemView(activity: DataController.wetDiaperActivity)
+//        ActivityListItemView(activity: DataController.dirtyDiaperActivity)
+//    }
+//}
 

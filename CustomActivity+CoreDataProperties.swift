@@ -19,3 +19,17 @@ extension CustomActivity {
     @NSManaged public var message: String?
 
 }
+
+extension CustomActivity {
+    override func getKind() -> String {
+        return "Custom" // self.message?
+    }
+    
+    override func getImage() -> String {
+        return "document.badge.clock"
+    }
+    
+    override func getShortDescription() -> String {
+        return self.message ?? "Custom activity"
+    }
+}

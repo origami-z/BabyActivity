@@ -10,10 +10,10 @@ import Foundation
 import CoreData
 
 
-extension SleepEntity {
+extension SleepActivity {
 
-    @nonobjc public class func fetchRequest() -> NSFetchRequest<SleepEntity> {
-        return NSFetchRequest<SleepEntity>(entityName: "SleepEntity")
+    @nonobjc public class func fetchRequest() -> NSFetchRequest<SleepActivity> {
+        return NSFetchRequest<SleepActivity>(entityName: "SleepActivity")
     }
 
     @NSManaged public var endTime: Date?
@@ -21,7 +21,7 @@ extension SleepEntity {
 }
 
 
-extension SleepEntity {
+extension SleepActivity {
     convenience init(
     context moc: NSManagedObjectContext,
     timestamp: Date,
@@ -32,4 +32,18 @@ extension SleepEntity {
       self.timestamp = timestamp
       self.endTime = endTime
   }
+}
+
+extension SleepActivity {
+    override func getKind() -> String {
+        return "Sleep"
+    }
+    
+    override func getImage() -> String {
+        return "zzz"
+    }
+    
+    override func getShortDescription() -> String {
+        return "Sleep" // todo length
+    }
 }

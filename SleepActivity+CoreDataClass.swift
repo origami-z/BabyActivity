@@ -9,7 +9,7 @@
 import Foundation
 import CoreData
 
-@objc(SleepEntity)
-public class SleepEntity: BaseActivity {
+
+public class SleepActivity: BaseActivity {
 
 }

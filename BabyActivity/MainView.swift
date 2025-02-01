@@ -8,12 +8,16 @@
 import SwiftUI
 
 struct MainView: View {
+    
+    @Environment(\.managedObjectContext) private var viewContext
+    
     var body: some View {
             TabView {
                 ContentView()
                     .tabItem {
                         Label("Activities", systemImage: "list.dash")
                     }
+                    .environment(\.managedObjectContext, viewContext)
 
                 SummaryView()
                     .tabItem {

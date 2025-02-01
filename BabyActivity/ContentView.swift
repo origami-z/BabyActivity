@@ -6,16 +6,20 @@
 //
 
 import SwiftUI
-import SwiftData
+import CoreData
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query(sort: \Activity.timestamp, order: .reverse) private var activities: [Activity]
-    @State private var path = [Activity]()
+    @Environment(\.managedObjectContext) private var viewContext
     
+    // @State private var path = [BaseActivity]()
+    
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(keyPath: \BaseActivity.timestamp, ascending: false)],
+        animation: .default)
+    private var activities: FetchedResults<BaseActivity>
     
     var body: some View {
-        NavigationStack(path: $path) {
+        NavigationStack {
             HStack {
                 Button("Sleep", systemImage: Activity.sleepImage) {
                     addSleepActivity()
@@ -47,60 +51,59 @@ struct ContentView: View {
             .navigationTitle("Activities")
             .toolbar {
                 Button("Sample data") {
-                    let data = DataController.simulatedActivities
-                    for activity in data {
-                        modelContext.insert(activity)
-                    }
+                    PersistenceController.addSimulatedData(viewContext: viewContext)
                 }
             }
         }
     }
     
+    private func saveContext() {
+        do {
+            try viewContext.save()
+        } catch _ {
+            print("Something went wrong.")
+        }
+    }
+    
     private func addSleepActivity() {
         withAnimation {
-            let newSleepActivity = Activity(
-                kind: .sleep,
-                timestamp: Date(),
-                endTimestamp: Date().addingTimeInterval(1)
+            let _ = SleepActivity(
+                context: viewContext, timestamp: Date(),
+                endTime: Date().addingTimeInterval(1)
             )
-            
-            modelContext.insert(newSleepActivity)
-            //path = [newActivity]
+            saveContext()
         }
     }
     
     private func addMilkActivity() {
         withAnimation {
-            let newMilkActivity = Activity(kind: .milk, timestamp: Date(), endTimestamp: Date().addingTimeInterval(1), amount: 0)
-            modelContext.insert(newMilkActivity)
-            //path = [newActivity]
+            let _ = MilkActivity(context: viewContext, timestamp: Date(),  amount: 0)
+            saveContext()
         }
     }
     
     private func addWetDiaperActivity() {
         withAnimation {
-            let newActivity = Activity(kind: .wetDiaper, timestamp: Date())
-            modelContext.insert(newActivity)
+            let _ = DiaperActivity(context: viewContext, timestamp: Date(), isWet: true, isDirty: false)
+            saveContext()
         }
     }
     
     private func addDirtyDiaperActivity() {
         withAnimation {
-            let newActivity = Activity(kind: .dirtyDiaper, timestamp: Date())
-            modelContext.insert(newActivity)
+            let _ = DiaperActivity(context: viewContext, timestamp: Date(), isWet: false, isDirty: true)
+            saveContext()
         }
     }
     
     private func deleteItems(offsets: IndexSet) {
         withAnimation {
-            for index in offsets {
-                modelContext.delete(activities[index])
-            }
+            offsets.map { activities[$0] }.forEach(viewContext.delete)
+            saveContext()
         }
     }
 }
 
 #Preview {
-    ContentView()
-        .modelContainer(DataController.previewContainer)
+    ContentView().environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
 }
