@@ -2,6 +2,7 @@
 <model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="23605" systemVersion="24C101" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
     <entity name="BaseActivity" representedClassName=".BaseActivity" isAbstract="YES" syncable="YES">
         <attribute name="timestamp" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="type" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
     </entity>
     <entity name="CustomActivity" representedClassName=".CustomActivity" parentEntity="BaseActivity" syncable="YES">
         <attribute name="message" optional="YES" attributeType="String"/>

@@ -30,16 +30,13 @@ extension Optional where Wrapped == Date {
 struct EditActivityView: View {
     @ObservedObject var activity: BaseActivity
     
-//    @State var dateProxy: Date = Date()
-//    @State var numberProxy: Int = 0
-//    @State var boolProxy: Bool = false
+    @State private var dateProxy: Date = Date()
+    @State private var numberProxy: Int = 0
+    @State private var boolProxy: Bool = false
     
-    let formatter: DateComponentsFormatter = {
-        let formatter = DateComponentsFormatter()
-        formatter.allowedUnits = [.hour, .minute]
-        formatter.unitsStyle = .brief
-        return formatter
-    }()
+//    init() {
+//        _dateProxy = State(wrappedValue: activity.timestamp)
+//    }
     
     var body: some View {
         Form {
@@ -116,6 +113,13 @@ struct EditActivityView: View {
     
 }
 
+
+private let formatter: DateComponentsFormatter = {
+    let formatter = DateComponentsFormatter()
+    formatter.allowedUnits = [.hour, .minute]
+    formatter.unitsStyle = .brief
+    return formatter
+}()
 
 #Preview("Sleep") {
     NavigationStack {

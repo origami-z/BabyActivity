@@ -31,6 +31,7 @@ extension DiaperActivity {
       self.init(context: moc)
 
       self.timestamp = timestamp
+      self.type = .Diaper
       self.isWet = isWet
       self.isDirty = isDirty
   }

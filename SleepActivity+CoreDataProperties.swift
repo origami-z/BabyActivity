@@ -16,9 +16,10 @@ extension SleepActivity {
         return NSFetchRequest<SleepActivity>(entityName: "SleepActivity")
     }
 
-    @NSManaged public var endTime: Date?
+    @NSManaged public var endTime: Date
 
 }
+
 
 
 extension SleepActivity {
@@ -30,7 +31,8 @@ extension SleepActivity {
       self.init(context: moc)
 
       self.timestamp = timestamp
-      self.endTime = endTime
+      self.type = .Sleep
+      self.endTime = endTime ?? timestamp
   }
 }
 
@@ -44,6 +46,6 @@ extension SleepActivity {
     }
     
     override func getShortDescription() -> String {
-        return "Sleep" // todo length
+        return "Sleep \(Formatters.sleepLengthFormatter.string(from: self.timestamp, to: self.endTime) ?? "")"
     }
 }

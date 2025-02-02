@@ -135,7 +135,7 @@ struct SleepSummaryView: View {
             .chartYAxis {
                 AxisMarks(values: .stride(by: .hour, count: 2)) { value in
                     let _ = print("AxisMarks \(value)")
-                    if let date = value.as(Date.self) {
+                    if let _ = value.as(Date.self) {
                         // let hour = Calendar.current.component(.hour, from: date)
 
                         AxisValueLabel(format: .dateTime.hour().minute())

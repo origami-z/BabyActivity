@@ -24,4 +24,11 @@ struct Formatters {
         formatter.unitsStyle = .abbreviated
         return formatter
     }()
+    
+    public static let sleepLengthFormatter: DateComponentsFormatter = {
+        let formatter = DateComponentsFormatter()
+        formatter.allowedUnits = [.hour, .minute]
+        formatter.unitsStyle = .brief
+        return formatter
+    }()
  }

@@ -40,13 +40,29 @@ struct ContentView: View {
             
             List {
                 ForEach(activities) { activity in
-                    NavigationLink {
-                        EditActivityView(activity: activity)
-                    } label: {
+                    NavigationLink(value: activity) {
                         ActivityListItemView(activity: activity)
                     }
                 }
                 .onDelete(perform: deleteItems)
+            }
+            .navigationDestination(for: BaseActivity.self) { selection in
+                switch selection {
+                case is MilkActivity:
+                    if let milkActivity = selection as? MilkActivity {
+                        EditMilkActivityView(activity: milkActivity)
+                    }
+                case is DiaperActivity:
+                    if let diaperActivity = selection as? DiaperActivity {
+                        EditDiaperActivityView(activity: diaperActivity)
+                    }
+                case is SleepActivity:
+                    if let sleepActivity = selection as? SleepActivity {
+                        EditSleepActivityView(activity: sleepActivity)
+                    }
+                default:
+                    Text("Destination view to be implemented")
+                }
             }
             .navigationTitle("Activities")
             .toolbar {
@@ -68,8 +84,8 @@ struct ContentView: View {
     private func addSleepActivity() {
         withAnimation {
             let _ = SleepActivity(
-                context: viewContext, timestamp: Date(),
-                endTime: Date().addingTimeInterval(1)
+                context: viewContext, timestamp: Date().addingTimeInterval(-1),
+                endTime: Date()
             )
             saveContext()
         }
@@ -77,28 +93,41 @@ struct ContentView: View {
     
     private func addMilkActivity() {
         withAnimation {
-            let _ = MilkActivity(context: viewContext, timestamp: Date(),  amount: 0)
+            let _ = MilkActivity(
+                context: viewContext,
+                timestamp: Date().addingTimeInterval(-1),
+                amount: 0)
             saveContext()
         }
     }
     
     private func addWetDiaperActivity() {
         withAnimation {
-            let _ = DiaperActivity(context: viewContext, timestamp: Date(), isWet: true, isDirty: false)
+            let _ = DiaperActivity(
+                context: viewContext,
+                timestamp: Date().addingTimeInterval(-1),
+                isWet: true,
+                isDirty: false)
             saveContext()
         }
     }
     
     private func addDirtyDiaperActivity() {
         withAnimation {
-            let _ = DiaperActivity(context: viewContext, timestamp: Date(), isWet: false, isDirty: true)
+            let _ = DiaperActivity(
+                context: viewContext,
+                timestamp: Date().addingTimeInterval(-1),
+                isWet: false,
+                isDirty: true)
             saveContext()
         }
     }
     
     private func deleteItems(offsets: IndexSet) {
         withAnimation {
-            offsets.map { activities[$0] }.forEach(viewContext.delete)
+            offsets.map {
+                activities[$0]
+            }.forEach(viewContext.delete)
             saveContext()
         }
     }

@@ -21,6 +21,20 @@ extension CustomActivity {
 }
 
 extension CustomActivity {
+    convenience init(
+    context moc: NSManagedObjectContext,
+    timestamp: Date,
+    message: String? = nil
+  ) {
+      self.init(context: moc)
+
+      self.timestamp = timestamp
+      self.type = .Custom
+      self.message = message
+  }
+}
+
+extension CustomActivity {
     override func getKind() -> String {
         return "Custom" // self.message?
     }

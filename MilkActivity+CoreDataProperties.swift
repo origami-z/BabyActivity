@@ -31,6 +31,7 @@ extension MilkActivity {
       self.init(context: moc)
 
       self.timestamp = timestamp
+      self.type = .Milk
       self.amount = amount
       self.isFormula = isFormula
   }
