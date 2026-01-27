@@ -18,6 +18,8 @@ BabyActivity/
 │   ├── EditActivityView.swift     # Activity detail editor with forms
 │   ├── SummaryView.swift          # Summary navigation hub
 │   ├── SleepSummaryView.swift     # Sleep analytics with chart
+│   ├── MilkSummaryView.swift      # Milk/feeding analytics with charts
+│   ├── DiaperSummaryView.swift    # Diaper analytics with charts
 │   └── BabyActivity.entitlements  # App entitlements
 ├── BabyActivityTests/             # Unit tests
 └── BabyActivityUITests/           # UI tests
@@ -66,14 +68,11 @@ public enum ActivityKind: String, Equatable, Sendable, Codable {
 2. **Activity List** - Chronological list with swipe-to-delete
 3. **Activity Editing** - Full CRUD with dynamic forms per activity type
 4. **Tab Navigation** - Activities and Summary tabs
-5. **Sleep Charts** - Bar chart visualization with day/week/month views
-6. **Average Calculations** - Average sleep duration per day
-7. **Sample Data** - Pre-populated demo data for testing
-
-### Partially Implemented
-
-- Milk summary view (placeholder)
-- Diaper summary view (placeholder)
+5. **Sleep Analytics** - Bar chart visualization, day/night breakdown, longest stretch, quality indicators
+6. **Milk Analytics** - Daily intake charts, average per feeding, feeding intervals
+7. **Diaper Analytics** - Daily counts (wet vs dirty stacked bar), time-of-day patterns
+8. **Average Calculations** - Average durations and counts per day
+9. **Sample Data** - Pre-populated demo data for testing
 
 ### Known Issues
 
@@ -118,7 +117,9 @@ struct PlotDuration: Identifiable {
 | `ActivityListItemView` | List item | Icon, description, relative timestamp |
 | `EditActivityView` | Detail editor | Dynamic forms based on ActivityKind |
 | `SummaryView` | Analytics hub | Navigation to detailed summaries |
-| `SleepSummaryView` | Sleep analytics | Bar chart, time range picker, averages |
+| `SleepSummaryView` | Sleep analytics | Bar chart, day/night breakdown, longest stretch, quality badges |
+| `MilkSummaryView` | Milk analytics | Daily intake chart, feeding frequency, interval analysis |
+| `DiaperSummaryView` | Diaper analytics | Stacked bar chart (wet/dirty), hourly pattern distribution |
 
 ## SF Symbols Used
 
@@ -151,11 +152,45 @@ let config = ModelConfiguration(isStoredInMemoryOnly: true)
 
 - Unit tests in `BabyActivityTests/`
 - UI tests in `BabyActivityUITests/`
-- Uses Swift Testing framework
-- Comprehensive tests for:
-  - DataController utilities (`sliceDataToPlot`, `averageDurationPerDay`, `mean`)
-  - Activity model validation
-  - ActivityKind enum
+- Uses Swift Testing framework with `@Test` attribute
+- DataController methods require `@MainActor` annotation in tests
+
+### Test Coverage
+
+| Test Suite | Coverage |
+|------------|----------|
+| `DataControllerTests` | `sliceDataToPlot`, `averageDurationPerDay`, `mean` |
+| `ActivityModelTests` | Initialization, validation, display, images |
+| `ActivityKindTests` | Description, raw values |
+| `MilkAnalyticsTests` | `milkDataByDay`, `averageMilkPerFeeding`, `feedingIntervals`, etc. |
+| `DiaperAnalyticsTests` | `diaperDataByDay`, `diaperDataByHour`, `averageDiapersPerDay` |
+| `EnhancedSleepAnalyticsTests` | `longestSleepStretch`, `dayNightSleepBreakdown`, `sleepTrendData` |
+
+### Testing Requirements
+
+**IMPORTANT: All new features MUST include corresponding unit tests.**
+
+When adding new functionality:
+1. Add unit tests for any new `DataController` helper functions
+2. Test edge cases: empty input, single item, multiple items, boundary conditions
+3. Test filtering logic when functions filter by `ActivityKind`
+4. Use `@MainActor` annotation for test structs that call `DataController` methods
+5. Follow existing test naming convention: `functionName_scenario_expectedBehavior`
+
+Example test structure:
+```swift
+@MainActor
+struct NewFeatureTests {
+    @Test func newFunction_emptyInput_returnsEmpty() {
+        let result = DataController.newFunction([])
+        #expect(result.isEmpty)
+    }
+
+    @Test func newFunction_validInput_calculatesCorrectly() {
+        // Test with valid data
+    }
+}
+```
 
 ## Input Validation
 
