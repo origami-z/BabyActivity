@@ -41,7 +41,7 @@ jobs:
           xcodebuild test \
             -project BabyActivity.xcodeproj \
             -scheme BabyActivity \
-            -destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
+            -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.5' \
             -configuration Debug \
             CODE_SIGNING_ALLOWED=NO \
             -resultBundlePath TestResults
