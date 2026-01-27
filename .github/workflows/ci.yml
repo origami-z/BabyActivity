@@ -21,12 +21,15 @@ jobs:
       - name: Show Xcode version
         run: xcodebuild -version
 
+      - name: List available simulators
+        run: xcrun simctl list devices available
+
       - name: Build
         run: |
           xcodebuild build \
             -project BabyActivity.xcodeproj \
             -scheme BabyActivity \
-            -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.0' \
+            -destination 'generic/platform=iOS Simulator' \
             -configuration Debug \
             CODE_SIGNING_ALLOWED=NO
 
@@ -35,7 +38,7 @@ jobs:
           xcodebuild test \
             -project BabyActivity.xcodeproj \
             -scheme BabyActivity \
-            -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.0' \
+            -destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
             -configuration Debug \
             CODE_SIGNING_ALLOWED=NO \
             -resultBundlePath TestResults
