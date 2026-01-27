@@ -12,9 +12,10 @@ import SwiftData
 class DataController {
     static let previewContainer: ModelContainer = {
         do {
-            let config = ModelConfiguration(isStoredInMemoryOnly: true)
-            let container = try ModelContainer(for: Activity.self, configurations: config)
-            
+            let schema = Schema([Activity.self, GrowthMeasurement.self, Milestone.self])
+            let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+            let container = try ModelContainer(for: schema, configurations: config)
+
             for activity in simulatedActivities {
                 container.mainContext.insert(activity)
             }
@@ -30,6 +31,10 @@ class DataController {
     static let milkAcitivity = Activity(kind: .milk, timestamp: Date().addingTimeInterval(Double(2) * 60 * -60), endTimestamp: Date().addingTimeInterval(Double(1) * 60 * -60) + 10*60, amount: 50)
     static let wetDiaperActivity = Activity(kind: .wetDiaper, timestamp: Date().addingTimeInterval(Double(3) * 60 * -60))
     static let dirtyDiaperActivity = Activity(kind: .dirtyDiaper, timestamp: Date().addingTimeInterval(Double(4) * 60 * -60))
+    static let solidFoodActivity = Activity(kind: .solidFood, timestamp: Date().addingTimeInterval(Double(5) * 60 * -60), foodType: "Banana puree")
+    static let tummyTimeActivity = Activity(kind: .tummyTime, timestamp: Date().addingTimeInterval(Double(6) * 60 * -60), endTimestamp: Date().addingTimeInterval(Double(6) * 60 * -60) + 15*60)
+    static let bathTimeActivity = Activity(kind: .bathTime, timestamp: Date().addingTimeInterval(Double(7) * 60 * -60))
+    static let medicineActivity = Activity(kind: .medicine, timestamp: Date().addingTimeInterval(Double(8) * 60 * -60), medicineName: "Vitamin D", dosage: "1 drop")
     
     static let simulatedActivities: [Activity] = {
         var activities: [Activity] = []
@@ -62,7 +67,20 @@ class DataController {
                 Activity(kind: .wetDiaper, timestamp: startOfToday.addingTimeInterval(startingTimeInterval + hourInterval * 6)),
                 Activity(kind: .dirtyDiaper, timestamp: startOfToday.addingTimeInterval(startingTimeInterval + hourInterval * 9.9)),
                 Activity(kind: .wetDiaper, timestamp: startOfToday.addingTimeInterval(startingTimeInterval + hourInterval * 15.4)),
-                Activity(kind: .wetDiaper, timestamp: startOfToday.addingTimeInterval(startingTimeInterval + hourInterval * 19.4))
+                Activity(kind: .wetDiaper, timestamp: startOfToday.addingTimeInterval(startingTimeInterval + hourInterval * 19.4)),
+
+                // tummy time
+                Activity(kind: .tummyTime, timestamp: startOfToday.addingTimeInterval(startingTimeInterval + hourInterval * 4), endTimestamp: startOfToday.addingTimeInterval(startingTimeInterval + hourInterval * 4.25)),
+                Activity(kind: .tummyTime, timestamp: startOfToday.addingTimeInterval(startingTimeInterval + hourInterval * 10), endTimestamp: startOfToday.addingTimeInterval(startingTimeInterval + hourInterval * 10.2)),
+
+                // solid food (only for older baby simulation - days 0-2)
+                Activity(kind: .solidFood, timestamp: startOfToday.addingTimeInterval(startingTimeInterval + hourInterval * 8), foodType: ["Banana puree", "Apple sauce", "Carrot puree", "Sweet potato", "Avocado", "Oatmeal"][i % 6], reactions: i == 3 ? "Mild rash" : nil),
+
+                // bath time
+                Activity(kind: .bathTime, timestamp: startOfToday.addingTimeInterval(startingTimeInterval + hourInterval * 18.5)),
+
+                // medicine (vitamin D daily)
+                Activity(kind: .medicine, timestamp: startOfToday.addingTimeInterval(startingTimeInterval + hourInterval * 7.5), medicineName: "Vitamin D", dosage: "1 drop")
             ])
         }
         return activities
@@ -655,5 +673,129 @@ extension DataController {
             feedingCount: 0,
             diaperCount: 0
         )
+    }
+}
+
+// MARK: - Tummy Time Analytics Helpers
+
+struct DailyTummyTimeData: Identifiable {
+    var date: Date
+    var totalMinutes: Double
+    var sessionCount: Int
+    var id: Date { date }
+}
+
+extension DataController {
+    /// Groups tummy time activities by day and calculates totals
+    static func tummyTimeDataByDay(_ activities: [Activity]) -> [DailyTummyTimeData] {
+        let tummyTimeActivities = activities.filter { $0.kind == .tummyTime && $0.endTimestamp != nil }
+        guard !tummyTimeActivities.isEmpty else { return [] }
+
+        let groupedByDay = Dictionary(grouping: tummyTimeActivities) {
+            Calendar.current.startOfDay(for: $0.timestamp)
+        }
+
+        return groupedByDay.map { (date, activities) in
+            let totalMinutes = activities.reduce(0.0) { total, activity in
+                guard let end = activity.endTimestamp else { return total }
+                return total + end.timeIntervalSince(activity.timestamp) / 60
+            }
+            return DailyTummyTimeData(
+                date: date,
+                totalMinutes: totalMinutes,
+                sessionCount: activities.count
+            )
+        }.sorted { $0.date < $1.date }
+    }
+
+    /// Average tummy time per day in minutes
+    static func averageTummyTimePerDay(_ activities: [Activity]) -> Double {
+        let dailyData = tummyTimeDataByDay(activities)
+        guard !dailyData.isEmpty else { return 0 }
+        return dailyData.map { $0.totalMinutes }.mean()
+    }
+}
+
+// MARK: - Solid Food Analytics Helpers
+
+struct DailySolidFoodData: Identifiable {
+    var date: Date
+    var mealCount: Int
+    var foods: [String]
+    var id: Date { date }
+}
+
+extension DataController {
+    /// Groups solid food activities by day
+    static func solidFoodDataByDay(_ activities: [Activity]) -> [DailySolidFoodData] {
+        let foodActivities = activities.filter { $0.kind == .solidFood }
+        guard !foodActivities.isEmpty else { return [] }
+
+        let groupedByDay = Dictionary(grouping: foodActivities) {
+            Calendar.current.startOfDay(for: $0.timestamp)
+        }
+
+        return groupedByDay.map { (date, activities) in
+            let foods = activities.compactMap { $0.foodType }.filter { !$0.isEmpty }
+            return DailySolidFoodData(
+                date: date,
+                mealCount: activities.count,
+                foods: foods
+            )
+        }.sorted { $0.date < $1.date }
+    }
+
+    /// Returns unique foods introduced
+    static func uniqueFoodsIntroduced(_ activities: [Activity]) -> [String] {
+        let foodActivities = activities.filter { $0.kind == .solidFood }
+        let foods = foodActivities.compactMap { $0.foodType }.filter { !$0.isEmpty }
+        return Array(Set(foods)).sorted()
+    }
+
+    /// Returns foods that had reactions
+    static func foodsWithReactions(_ activities: [Activity]) -> [String] {
+        let foodActivities = activities.filter { $0.kind == .solidFood }
+        let foodsWithReaction = foodActivities
+            .filter { $0.reactions != nil && !($0.reactions?.isEmpty ?? true) }
+            .compactMap { $0.foodType }
+            .filter { !$0.isEmpty }
+        return Array(Set(foodsWithReaction)).sorted()
+    }
+}
+
+// MARK: - Medicine Analytics Helpers
+
+struct DailyMedicineData: Identifiable {
+    var date: Date
+    var doseCount: Int
+    var medicines: [String]
+    var id: Date { date }
+}
+
+extension DataController {
+    /// Groups medicine activities by day
+    static func medicineDataByDay(_ activities: [Activity]) -> [DailyMedicineData] {
+        let medicineActivities = activities.filter { $0.kind == .medicine }
+        guard !medicineActivities.isEmpty else { return [] }
+
+        let groupedByDay = Dictionary(grouping: medicineActivities) {
+            Calendar.current.startOfDay(for: $0.timestamp)
+        }
+
+        return groupedByDay.map { (date, activities) in
+            let medicines = activities.compactMap { $0.medicineName }.filter { !$0.isEmpty }
+            return DailyMedicineData(
+                date: date,
+                doseCount: activities.count,
+                medicines: medicines
+            )
+        }.sorted { $0.date < $1.date }
+    }
+
+    /// Returns unique medicines
+    static func uniqueMedicines(_ activities: [Activity]) -> [String] {
+        let medicineActivities = activities.filter { $0.kind == .medicine }
+        let medicines = medicineActivities.compactMap { $0.medicineName }.filter { !$0.isEmpty }
+        return Array(Set(medicines)).sorted()
     }
 }

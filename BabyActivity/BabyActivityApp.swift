@@ -13,6 +13,8 @@ struct BabyActivityApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Activity.self,
+            GrowthMeasurement.self,
+            Milestone.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 

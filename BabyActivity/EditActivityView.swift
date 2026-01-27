@@ -103,9 +103,57 @@ struct EditActivityView: View {
 //            }
         case .dirtyDiaper:
             DatePicker("At", selection: $activity.timestamp)
-            
+
         case .wetDiaper:
             DatePicker("At", selection: $activity.timestamp)
+
+        case .solidFood:
+            DatePicker("At", selection: $activity.timestamp)
+            TextField("Food Type", text: Binding<String>(
+                get: { activity.foodType ?? "" },
+                set: { activity.foodType = $0 }
+            ))
+            TextField("Reactions/Notes (optional)", text: Binding<String>(
+                get: { activity.reactions ?? "" },
+                set: { activity.reactions = $0.isEmpty ? nil : $0 }
+            ))
+
+        case .tummyTime:
+            DatePicker("Start At", selection: $activity.timestamp)
+            DatePicker(
+                "End At",
+                selection: Binding<Date>(
+                    get: { activity.endTimestamp ?? Date(timeIntervalSince1970: 0) },
+                    set: { activity.endTimestamp = $0 }
+                )
+            )
+            HStack {
+                Text("Duration")
+                Spacer()
+                Text(formatter.string(from: activity.timestamp, to: activity.endTimestamp ?? Date(timeIntervalSince1970: 0)) ?? "0")
+            }
+
+        case .bathTime:
+            DatePicker("At", selection: $activity.timestamp)
+            TextField("Notes (optional)", text: Binding<String>(
+                get: { activity.notes ?? "" },
+                set: { activity.notes = $0.isEmpty ? nil : $0 }
+            ))
+
+        case .medicine:
+            DatePicker("At", selection: $activity.timestamp)
+            TextField("Medicine Name", text: Binding<String>(
+                get: { activity.medicineName ?? "" },
+                set: { activity.medicineName = $0 }
+            ))
+            TextField("Dosage (optional)", text: Binding<String>(
+                get: { activity.dosage ?? "" },
+                set: { activity.dosage = $0.isEmpty ? nil : $0 }
+            ))
+            TextField("Notes (optional)", text: Binding<String>(
+                get: { activity.notes ?? "" },
+                set: { activity.notes = $0.isEmpty ? nil : $0 }
+            ))
         }
     }
     
@@ -133,6 +181,30 @@ struct EditActivityView: View {
 #Preview("Dirty Diaper") {
     NavigationStack {
         EditActivityView(activity: DataController.dirtyDiaperActivity)
+    }
+}
+
+#Preview("Solid Food") {
+    NavigationStack {
+        EditActivityView(activity: DataController.solidFoodActivity)
+    }
+}
+
+#Preview("Tummy Time") {
+    NavigationStack {
+        EditActivityView(activity: DataController.tummyTimeActivity)
+    }
+}
+
+#Preview("Bath Time") {
+    NavigationStack {
+        EditActivityView(activity: DataController.bathTimeActivity)
+    }
+}
+
+#Preview("Medicine") {
+    NavigationStack {
+        EditActivityView(activity: DataController.medicineActivity)
     }
 }
 

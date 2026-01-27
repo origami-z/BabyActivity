@@ -2,28 +2,35 @@
 
 ## Overview
 
-BabyActivity is an iOS app built with SwiftUI and SwiftData to help parents track their baby's daily activities. The app allows logging and visualizing sleep, feeding, and diaper changes.
+BabyActivity is an iOS app built with SwiftUI and SwiftData to help parents track their baby's daily activities. The app allows logging and visualizing sleep, feeding, diaper changes, solid food, tummy time, bath time, medicine, growth measurements, and developmental milestones.
 
 ## Project Structure
 
 ```
 BabyActivity/
 ├── BabyActivity/
-│   ├── BabyActivityApp.swift      # App entry point, ModelContainer setup
-│   ├── Activity.swift             # Core data model and ActivityKind enum
-│   ├── DataController.swift       # Preview data, utilities, chart helpers, trends & dashboard analytics
-│   ├── MainView.swift             # Tab-based navigation container
-│   ├── DashboardView.swift        # iOS Health-style dashboard with trends and highlights
-│   ├── ContentView.swift          # Activity list with quick-add buttons
-│   ├── ActivityListItemView.swift # List item display component
-│   ├── EditActivityView.swift     # Activity detail editor with forms
-│   ├── SummaryView.swift          # Summary navigation hub
-│   ├── SleepSummaryView.swift     # Sleep analytics with chart
-│   ├── MilkSummaryView.swift      # Milk/feeding analytics with charts
-│   ├── DiaperSummaryView.swift    # Diaper analytics with charts
-│   └── BabyActivity.entitlements  # App entitlements
-├── BabyActivityTests/             # Unit tests
-└── BabyActivityUITests/           # UI tests
+│   ├── BabyActivityApp.swift         # App entry point, ModelContainer setup
+│   ├── Activity.swift                # Core activity model and ActivityKind enum
+│   ├── Growth.swift                  # Growth measurement model (weight, height, head)
+│   ├── Milestone.swift               # Milestone model with photo attachment support
+│   ├── DataController.swift          # Preview data, utilities, chart helpers, trends & analytics
+│   ├── MainView.swift                # Tab-based navigation container
+│   ├── DashboardView.swift           # iOS Health-style dashboard with trends and highlights
+│   ├── ContentView.swift             # Activity list with quick-add buttons
+│   ├── ActivityListItemView.swift    # List item display component
+│   ├── EditActivityView.swift        # Activity detail editor with forms
+│   ├── SummaryView.swift             # Summary navigation hub
+│   ├── SleepSummaryView.swift        # Sleep analytics with chart
+│   ├── MilkSummaryView.swift         # Milk/feeding analytics with charts
+│   ├── DiaperSummaryView.swift       # Diaper analytics with charts
+│   ├── TummyTimeSummaryView.swift    # Tummy time duration tracking and goals
+│   ├── SolidFoodSummaryView.swift    # Solid food tracking with allergen monitoring
+│   ├── MedicineSummaryView.swift     # Medicine tracking with dosage history
+│   ├── GrowthSummaryView.swift       # Growth measurements with charts
+│   ├── MilestoneSummaryView.swift    # Developmental milestones with photos
+│   └── BabyActivity.entitlements     # App entitlements
+├── BabyActivityTests/                # Unit tests
+└── BabyActivityUITests/              # UI tests
 ```
 
 ## Architecture
@@ -36,7 +43,7 @@ BabyActivity/
 
 ## Data Model
 
-### Activity (`Activity.swift:32-62`)
+### Activity (`Activity.swift`)
 
 The core model using SwiftData's `@Model` macro:
 
@@ -45,19 +52,53 @@ The core model using SwiftData's `@Model` macro:
 final class Activity {
     var timestamp: Date           // Start time of activity
     var kind: ActivityKind        // Type of activity
-    var endTimestamp: Date?       // End time (for sleep/milk)
+    var endTimestamp: Date?       // End time (for sleep/milk/tummyTime)
     var amount: Int?              // Amount in ml (for milk)
+    var foodType: String?         // Food type (for solidFood)
+    var reactions: String?        // Allergen reactions (for solidFood)
+    var medicineName: String?     // Medicine name (for medicine)
+    var dosage: String?           // Dosage (for medicine)
+    var notes: String?            // General notes
 }
 ```
 
-### ActivityKind (`Activity.swift:11-16`)
+### ActivityKind (`Activity.swift:11-20`)
 
 ```swift
-public enum ActivityKind: String, Equatable, Sendable, Codable {
+public enum ActivityKind: String, Equatable, Sendable, Codable, CaseIterable {
     case sleep
     case milk
     case wetDiaper
     case dirtyDiaper
+    case solidFood      // Solid food/meals with allergen tracking
+    case tummyTime      // Tummy time with duration
+    case bathTime       // Simple timestamp logging
+    case medicine       // Medicine/vitamins with dosage
+}
+```
+
+### GrowthMeasurement (`Growth.swift`)
+
+```swift
+@Model
+final class GrowthMeasurement {
+    var timestamp: Date
+    var measurementType: GrowthMeasurementType  // .weight, .height, .headCircumference
+    var value: Double      // Weight in kg, height/head in cm
+    var notes: String?
+}
+```
+
+### Milestone (`Milestone.swift`)
+
+```swift
+@Model
+final class Milestone {
+    var timestamp: Date
+    var milestoneType: MilestoneType  // .firstSmile, .rollOver, .crawl, etc.
+    var customTitle: String?          // For custom milestones
+    var notes: String?
+    var photoData: Data?              // Photo attachment
 }
 ```
 
@@ -65,7 +106,7 @@ public enum ActivityKind: String, Equatable, Sendable, Codable {
 
 ### Implemented
 
-1. **Activity Logging** - Quick-add buttons for all 4 activity types
+1. **Activity Logging** - Quick-add buttons for all 8 activity types (sleep, milk, diapers, solid food, tummy time, bath, medicine)
 2. **Activity List** - Chronological list with swipe-to-delete
 3. **Activity Editing** - Full CRUD with dynamic forms per activity type
 4. **Tab Navigation** - Dashboard, Activities, and Summary tabs
@@ -80,6 +121,12 @@ public enum ActivityKind: String, Equatable, Sendable, Codable {
 13. **Activity Heat Map** - Visual pattern display by hour and day of week
 14. **Smart Highlights** - Automatic detection of notable patterns (long sleep, consistent feeding, good hydration)
 15. **Accessibility Support** - VoiceOver labels, Dynamic Type, accessibility hints
+16. **Solid Food Tracking** - Food type logging, allergen reaction tracking, foods introduced list
+17. **Tummy Time Tracking** - Duration tracking with daily goals (30 min target), session counts
+18. **Bath Time Logging** - Simple timestamp-based bath time logging
+19. **Medicine Tracking** - Medicine name, dosage tracking, dose history
+20. **Growth Measurements** - Weight (kg), height (cm), head circumference tracking with charts
+21. **Milestone Tracking** - 16 common milestones with expected age ranges, photo attachment support
 
 ### Known Issues
 
@@ -172,13 +219,18 @@ struct DailyActivitySummary: Identifiable {
 |------|---------|--------------|
 | `MainView` | Tab container | Dashboard, Activities, Summary tabs |
 | `DashboardView` | Health-style dashboard | Today's summary, trend charts, heat map, highlights |
-| `ContentView` | Activity list | Quick-add buttons, list with navigation |
+| `ContentView` | Activity list | Quick-add buttons (2 rows), list with navigation |
 | `ActivityListItemView` | List item | Icon, description, relative timestamp |
 | `EditActivityView` | Detail editor | Dynamic forms based on ActivityKind |
-| `SummaryView` | Analytics hub | Navigation to detailed summaries |
+| `SummaryView` | Analytics hub | Organized sections: Core Activities, Development, Health |
 | `SleepSummaryView` | Sleep analytics | Bar chart, day/night breakdown, longest stretch, quality badges |
 | `MilkSummaryView` | Milk analytics | Daily intake chart, feeding frequency, interval analysis |
 | `DiaperSummaryView` | Diaper analytics | Stacked bar chart (wet/dirty), hourly pattern distribution |
+| `TummyTimeSummaryView` | Tummy time | Daily goal progress (30 min), duration chart, session count |
+| `SolidFoodSummaryView` | Food tracking | Foods introduced grid, reaction alerts, daily meals chart |
+| `MedicineSummaryView` | Medicine tracking | Active medicines list, daily doses chart, dose history |
+| `GrowthSummaryView` | Growth charts | Weight/height/head charts, add measurement sheet |
+| `MilestoneSummaryView` | Milestones | Achievement timeline, photo cards, add milestone sheet |
 
 ### Dashboard Components (`DashboardView.swift`)
 
@@ -198,6 +250,13 @@ struct DailyActivitySummary: Identifiable {
 - Milk: `cup.and.saucer.fill`
 - Wet Diaper: `toilet`
 - Dirty Diaper: `tornado`
+- Solid Food: `fork.knife`
+- Tummy Time: `figure.child`
+- Bath Time: `bathtub.fill`
+- Medicine: `cross.case.fill`
+- Weight: `scalemass.fill`
+- Height: `ruler.fill`
+- Head Circumference: `circle.dashed`
 
 ## SwiftData Configuration
 
@@ -232,7 +291,7 @@ let config = ModelConfiguration(isStoredInMemoryOnly: true)
 |------------|----------|
 | `DataControllerTests` | `sliceDataToPlot`, `averageDurationPerDay`, `mean` |
 | `ActivityModelTests` | Initialization, validation, display, images |
-| `ActivityKindTests` | Description, raw values |
+| `ActivityKindTests` | Description, raw values, all 8 activity types |
 | `MilkAnalyticsTests` | `milkDataByDay`, `averageMilkPerFeeding`, `feedingIntervals`, etc. |
 | `DiaperAnalyticsTests` | `diaperDataByDay`, `diaperDataByHour`, `averageDiapersPerDay` |
 | `EnhancedSleepAnalyticsTests` | `longestSleepStretch`, `dayNightSleepBreakdown`, `sleepTrendData` |
@@ -240,6 +299,12 @@ let config = ModelConfiguration(isStoredInMemoryOnly: true)
 | `HeatMapDataTests` | `HourlyActivityData` ID uniqueness and format |
 | `TrendComparisonTests` | `TrendComparison` structure values |
 | `DailyActivitySummaryTests` | `DailyActivitySummary` structure values and ID |
+| `ExtendedActivityTypesTests` | Solid food, tummy time, bath time, medicine initialization and display |
+| `TummyTimeAnalyticsTests` | `tummyTimeDataByDay`, `averageTummyTimePerDay` |
+| `SolidFoodAnalyticsTests` | `solidFoodDataByDay`, `uniqueFoodsIntroduced`, `foodsWithReactions` |
+| `MedicineAnalyticsTests` | `medicineDataByDay`, `uniqueMedicines` |
+| `GrowthMeasurementTests` | Initialization, display, validation for all measurement types |
+| `MilestoneTests` | Initialization, title, icons, age calculations, expected range |
 
 ### Testing Requirements
 

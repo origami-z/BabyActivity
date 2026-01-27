@@ -16,22 +16,42 @@ struct ContentView: View {
     
     var body: some View {
         NavigationStack(path: $path) {
-            HStack {
-                Button("Sleep", systemImage: Activity.sleepImage) {
-                    addSleepActivity()
-                }.buttonStyle(.borderedProminent)
-                
-                Button("Milk", systemImage: Activity.milkImage) {
-                    addMilkActivity()
-                }.buttonStyle(.borderedProminent)
-                
-                Button("Wet", systemImage: Activity.wetDiaperImage) {
-                    addWetDiaperActivity()
-                }.buttonStyle(.borderedProminent)
-                
-                Button("Dirty", systemImage: Activity.dirtyDiaperImage) {
-                    addDirtyDiaperActivity()
-                }.buttonStyle(.borderedProminent)
+            VStack(spacing: 8) {
+                HStack {
+                    Button("Sleep", systemImage: Activity.sleepImage) {
+                        addSleepActivity()
+                    }.buttonStyle(.borderedProminent)
+
+                    Button("Milk", systemImage: Activity.milkImage) {
+                        addMilkActivity()
+                    }.buttonStyle(.borderedProminent)
+
+                    Button("Wet", systemImage: Activity.wetDiaperImage) {
+                        addWetDiaperActivity()
+                    }.buttonStyle(.borderedProminent)
+
+                    Button("Dirty", systemImage: Activity.dirtyDiaperImage) {
+                        addDirtyDiaperActivity()
+                    }.buttonStyle(.borderedProminent)
+                }
+
+                HStack {
+                    Button("Food", systemImage: Activity.solidFoodImage) {
+                        addSolidFoodActivity()
+                    }.buttonStyle(.borderedProminent).tint(.orange)
+
+                    Button("Tummy", systemImage: Activity.tummyTimeImage) {
+                        addTummyTimeActivity()
+                    }.buttonStyle(.borderedProminent).tint(.green)
+
+                    Button("Bath", systemImage: Activity.bathTimeImage) {
+                        addBathTimeActivity()
+                    }.buttonStyle(.borderedProminent).tint(.cyan)
+
+                    Button("Medicine", systemImage: Activity.medicineImage) {
+                        addMedicineActivity()
+                    }.buttonStyle(.borderedProminent).tint(.red)
+                }
             }
             
             List {
@@ -90,7 +110,35 @@ struct ContentView: View {
             modelContext.insert(newActivity)
         }
     }
-    
+
+    private func addSolidFoodActivity() {
+        withAnimation {
+            let newActivity = Activity(kind: .solidFood, timestamp: Date(), foodType: "")
+            modelContext.insert(newActivity)
+        }
+    }
+
+    private func addTummyTimeActivity() {
+        withAnimation {
+            let newActivity = Activity(kind: .tummyTime, timestamp: Date(), endTimestamp: Date().addingTimeInterval(1))
+            modelContext.insert(newActivity)
+        }
+    }
+
+    private func addBathTimeActivity() {
+        withAnimation {
+            let newActivity = Activity(kind: .bathTime, timestamp: Date())
+            modelContext.insert(newActivity)
+        }
+    }
+
+    private func addMedicineActivity() {
+        withAnimation {
+            let newActivity = Activity(kind: .medicine, timestamp: Date(), medicineName: "", dosage: nil)
+            modelContext.insert(newActivity)
+        }
+    }
+
     private func deleteItems(offsets: IndexSet) {
         withAnimation {
             for index in offsets {

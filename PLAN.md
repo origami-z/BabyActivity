@@ -103,40 +103,43 @@ This document outlines the roadmap for improving BabyActivity from its current M
 
 ---
 
-## Phase 4: Extended Activity Types
+## Phase 4: Extended Activity Types ✅ COMPLETED
 
 **Priority: Medium | Effort: Medium**
 
 ### 4.1 New Activity Types
 
-- [ ] **Solid Food/Meals**
-  - Track food type, amount, reactions
-  - Allergen tracking
+- [x] **Solid Food/Meals**
+  - Track food type and reactions
+  - Allergen tracking with foods with reactions list
+  - Daily meals chart and foods introduced grid
 
-- [ ] **Tummy Time**
-  - Duration tracking
-  - Milestone achievements
+- [x] **Tummy Time**
+  - Duration tracking with daily goals (30 min target)
+  - Session counts per day with charts
 
-- [ ] **Bath Time**
-  - Simple timestamp logging
+- [x] **Bath Time**
+  - Simple timestamp logging with notes
 
-- [ ] **Medicine/Vitamins**
-  - Dosage tracking
-  - Schedule reminders
+- [x] **Medicine/Vitamins**
+  - Dosage tracking with medicine name, dosage fields
+  - Active medicines list and dose history
 
-- [ ] **Growth Measurements**
-  - Weight, height, head circumference
-  - Percentile charts integration
+- [x] **Growth Measurements**
+  - Weight (kg), height (cm), head circumference (cm)
+  - Line charts showing progress over time
+  - Change indicators from previous measurement
 
-- [ ] **Milestones**
-  - First smile, roll over, crawl, walk, words
-  - Photo attachment support
+- [x] **Milestones**
+  - 16 predefined milestones with expected age ranges
+  - Photo attachment support via PhotosPicker
+  - Custom milestone support
 
 ### 4.2 Activity Customization
 
-- [ ] Allow users to create custom activity types
-- [ ] Custom icons and colors
-- [ ] Custom fields per activity type
+- [ ] Allow users to create custom activity types (future)
+- [ ] Custom icons and colors (future)
+- [ ] Custom fields per activity type (future)
 
 ---
 

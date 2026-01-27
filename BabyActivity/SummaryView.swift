@@ -11,35 +11,93 @@ struct SummaryView: View {
     var body: some View {
         NavigationStack {
             List {
-                NavigationLink {
-                    SleepSummaryView()
-                } label: {
-                    SummaryRowView(
-                        title: "Sleep",
-                        subtitle: "Daily patterns, day vs night breakdown",
-                        icon: Activity.sleepImage,
-                        color: .indigo
-                    )
+                Section("Core Activities") {
+                    NavigationLink {
+                        SleepSummaryView()
+                    } label: {
+                        SummaryRowView(
+                            title: "Sleep",
+                            subtitle: "Daily patterns, day vs night breakdown",
+                            icon: Activity.sleepImage,
+                            color: .indigo
+                        )
+                    }
+                    NavigationLink {
+                        MilkSummaryView()
+                    } label: {
+                        SummaryRowView(
+                            title: "Milk",
+                            subtitle: "Daily intake, feeding intervals",
+                            icon: Activity.milkImage,
+                            color: .blue
+                        )
+                    }
+                    NavigationLink {
+                        DiaperSummaryView()
+                    } label: {
+                        SummaryRowView(
+                            title: "Diapers",
+                            subtitle: "Daily counts, time of day patterns",
+                            icon: Activity.wetDiaperImage,
+                            color: .cyan
+                        )
+                    }
                 }
-                NavigationLink {
-                    MilkSummaryView()
-                } label: {
-                    SummaryRowView(
-                        title: "Milk",
-                        subtitle: "Daily intake, feeding intervals",
-                        icon: Activity.milkImage,
-                        color: .blue
-                    )
+
+                Section("Development") {
+                    NavigationLink {
+                        TummyTimeSummaryView()
+                    } label: {
+                        SummaryRowView(
+                            title: "Tummy Time",
+                            subtitle: "Duration trends, daily goals",
+                            icon: Activity.tummyTimeImage,
+                            color: .green
+                        )
+                    }
+                    NavigationLink {
+                        SolidFoodSummaryView()
+                    } label: {
+                        SummaryRowView(
+                            title: "Solid Food",
+                            subtitle: "Foods introduced, reactions",
+                            icon: Activity.solidFoodImage,
+                            color: .orange
+                        )
+                    }
                 }
-                NavigationLink {
-                    DiaperSummaryView()
-                } label: {
-                    SummaryRowView(
-                        title: "Diapers",
-                        subtitle: "Daily counts, time of day patterns",
-                        icon: Activity.wetDiaperImage,
-                        color: .cyan
-                    )
+
+                Section("Health") {
+                    NavigationLink {
+                        MedicineSummaryView()
+                    } label: {
+                        SummaryRowView(
+                            title: "Medicine",
+                            subtitle: "Medications, dosages, schedule",
+                            icon: Activity.medicineImage,
+                            color: .red
+                        )
+                    }
+                    NavigationLink {
+                        GrowthSummaryView()
+                    } label: {
+                        SummaryRowView(
+                            title: "Growth",
+                            subtitle: "Weight, height, head measurements",
+                            icon: "chart.line.uptrend.xyaxis",
+                            color: .purple
+                        )
+                    }
+                    NavigationLink {
+                        MilestoneSummaryView()
+                    } label: {
+                        SummaryRowView(
+                            title: "Milestones",
+                            subtitle: "Developmental achievements",
+                            icon: "star.fill",
+                            color: .yellow
+                        )
+                    }
                 }
             }
             .navigationTitle("Summary")
