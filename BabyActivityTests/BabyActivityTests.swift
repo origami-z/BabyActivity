@@ -11,32 +11,33 @@ import Foundation
 
 // MARK: - DataController Tests
 
+@MainActor
 struct DataControllerTests {
 
     // MARK: - sliceDataToPlot Tests
 
-    @Test func sliceDataToPlot_singleDayActivity_returnsOneSlice() async {
+    @Test func sliceDataToPlot_singleDayActivity_returnsOneSlice() {
         let calendar = Calendar.current
         let startOfDay = calendar.startOfDay(for: Date())
         let start = startOfDay.addingTimeInterval(2 * 60 * 60) // 2 AM
         let end = startOfDay.addingTimeInterval(4 * 60 * 60) // 4 AM
 
         let activity = Activity(kind: .sleep, timestamp: start, endTimestamp: end)
-        let result = await DataController.sliceDataToPlot(sleepActivities: [activity])
+        let result = DataController.sliceDataToPlot(sleepActivities: [activity])
 
         #expect(result.count == 1)
         #expect(result[0].start == start)
         #expect(result[0].end == end)
     }
 
-    @Test func sliceDataToPlot_crossMidnightActivity_returnsTwoSlices() async {
+    @Test func sliceDataToPlot_crossMidnightActivity_returnsTwoSlices() {
         let calendar = Calendar.current
         let startOfDay = calendar.startOfDay(for: Date())
         let start = startOfDay.addingTimeInterval(23 * 60 * 60) // 11 PM
         let end = startOfDay.addingTimeInterval(26 * 60 * 60) // 2 AM next day
 
         let activity = Activity(kind: .sleep, timestamp: start, endTimestamp: end)
-        let result = await DataController.sliceDataToPlot(sleepActivities: [activity])
+        let result = DataController.sliceDataToPlot(sleepActivities: [activity])
 
         #expect(result.count == 2)
         // First slice: from 11 PM to just before midnight
@@ -46,15 +47,15 @@ struct DataControllerTests {
         #expect(result[1].end == end)
     }
 
-    @Test func sliceDataToPlot_emptyInput_returnsEmpty() async {
-        let result = await DataController.sliceDataToPlot(sleepActivities: [])
+    @Test func sliceDataToPlot_emptyInput_returnsEmpty() {
+        let result = DataController.sliceDataToPlot(sleepActivities: [])
         #expect(result.isEmpty)
     }
 
-    @Test func sliceDataToPlot_activityWithNoEndTime_treatsSameAsStart() async {
+    @Test func sliceDataToPlot_activityWithNoEndTime_treatsSameAsStart() {
         let start = Date()
         let activity = Activity(kind: .sleep, timestamp: start, endTimestamp: nil, amount: nil)
-        let result = await DataController.sliceDataToPlot(sleepActivities: [activity])
+        let result = DataController.sliceDataToPlot(sleepActivities: [activity])
 
         #expect(result.count == 1)
         #expect(result[0].start == start)
@@ -63,7 +64,7 @@ struct DataControllerTests {
 
     // MARK: - averageDurationPerDay Tests
 
-    @Test func averageDurationPerDay_singleDay_returnsCorrectAverage() async {
+    @Test func averageDurationPerDay_singleDay_returnsCorrectAverage() {
         let calendar = Calendar.current
         let startOfDay = calendar.startOfDay(for: Date())
 
@@ -72,13 +73,13 @@ struct DataControllerTests {
             PlotDuration(start: startOfDay.addingTimeInterval(7200), end: startOfDay.addingTimeInterval(10800), id: UUID()) // 1 hour
         ]
 
-        let result = await DataController.averageDurationPerDay(durations)
+        let result = DataController.averageDurationPerDay(durations)
 
         // Both durations are on the same day, so total is 2 hours (7200 seconds)
         #expect(result == 7200)
     }
 
-    @Test func averageDurationPerDay_multipleDays_returnsCorrectAverage() async {
+    @Test func averageDurationPerDay_multipleDays_returnsCorrectAverage() {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
         let yesterday = calendar.date(byAdding: .day, value: -1, to: today)!
@@ -90,18 +91,18 @@ struct DataControllerTests {
             PlotDuration(start: yesterday.addingTimeInterval(0), end: yesterday.addingTimeInterval(14400), id: UUID())
         ]
 
-        let result = await DataController.averageDurationPerDay(durations)
+        let result = DataController.averageDurationPerDay(durations)
 
         // Average: (7200 + 14400) / 2 = 10800 seconds (3 hours)
         #expect(result == 10800)
     }
 
-    @Test func averageDurationPerDay_emptyInput_returnsZero() async {
-        let result = await DataController.averageDurationPerDay([])
+    @Test func averageDurationPerDay_emptyInput_returnsZero() {
+        let result = DataController.averageDurationPerDay([])
         #expect(result == 0)
     }
 
-    @Test func averageDurationPerDay_differentMonths_groupsCorrectly() async {
+    @Test func averageDurationPerDay_differentMonths_groupsCorrectly() {
         let calendar = Calendar.current
         // Create dates on the same day number but different months
         var jan15Components = DateComponents()
@@ -125,7 +126,7 @@ struct DataControllerTests {
             PlotDuration(start: feb15, end: feb15.addingTimeInterval(10800), id: UUID())
         ]
 
-        let result = await DataController.averageDurationPerDay(durations)
+        let result = DataController.averageDurationPerDay(durations)
 
         // Should be grouped separately: (3600 + 10800) / 2 = 7200
         #expect(result == 7200)
