@@ -29,35 +29,30 @@ extension Optional where Wrapped == Date {
 
 struct EditActivityView: View {
     @Bindable var activity: Activity
-    
-//    @State var dateProxy: Date = Date()
-//    @State var numberProxy: Int = 0
-//    @State var boolProxy: Bool = false
-    
+
     let formatter: DateComponentsFormatter = {
         let formatter = DateComponentsFormatter()
         formatter.allowedUnits = [.hour, .minute]
         formatter.unitsStyle = .brief
         return formatter
     }()
-    
+
     var body: some View {
         Form {
             specificEdits
+
+            // Validation errors section
+            if !activity.validationErrors.isEmpty {
+                Section {
+                    ForEach(activity.validationErrors, id: \.self) { error in
+                        Label(error, systemImage: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.red)
+                    }
+                } header: {
+                    Text("Validation Issues")
+                }
+            }
         }
-//        .onAppear {
-//            switch activity.data {
-//            case .sleep(let endAt):
-//                dateProxy = endAt
-//            case .milk(let endAt, let amount):
-//                dateProxy = endAt
-//                numberProxy = amount
-//            case .diaperChange(let dirty):
-//                boolProxy = dirty
-//                break
-//                
-//            }
-//        }
         .navigationTitle("Edit \(activity.kind)")
         .navigationBarTitleDisplayMode(.inline)
     }
