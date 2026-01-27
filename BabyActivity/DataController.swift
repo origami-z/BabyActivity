@@ -345,3 +345,315 @@ extension DataController {
         }.sorted { $0.date < $1.date }
     }
 }
+
+// MARK: - Dashboard & Trends Helpers
+
+/// Represents a trend comparison between two periods
+struct TrendComparison {
+    var currentValue: Double
+    var previousValue: Double
+    var percentageChange: Double
+    var trend: TrendDirection
+
+    enum TrendDirection {
+        case up, down, stable
+
+        var systemImage: String {
+            switch self {
+            case .up: return "arrow.up"
+            case .down: return "arrow.down"
+            case .stable: return "minus"
+            }
+        }
+
+        var accessibilityLabel: String {
+            switch self {
+            case .up: return "increased"
+            case .down: return "decreased"
+            case .stable: return "unchanged"
+            }
+        }
+    }
+}
+
+/// Represents a highlight or notable pattern
+struct ActivityHighlight: Identifiable {
+    var id: UUID = UUID()
+    var title: String
+    var description: String
+    var icon: String
+    var color: Color
+    var priority: Int  // Lower is more important
+}
+
+/// Represents activity data by hour for heat maps
+struct HourlyActivityData: Identifiable {
+    var hour: Int
+    var dayOfWeek: Int  // 1 = Sunday, 7 = Saturday
+    var count: Int
+    var kind: ActivityKind?
+    var id: String { "\(dayOfWeek)-\(hour)" }
+}
+
+/// Daily totals for all activity types (for dashboard overview)
+struct DailyActivitySummary: Identifiable {
+    var date: Date
+    var sleepMinutes: Double
+    var milkAmount: Int
+    var feedingCount: Int
+    var diaperCount: Int
+    var id: Date { date }
+}
+
+import SwiftUI
+
+extension DataController {
+    // MARK: - Trend Calculations
+
+    /// Compares current period value vs previous period value
+    static func calculateTrend(currentValue: Double, previousValue: Double) -> TrendComparison {
+        guard previousValue > 0 else {
+            return TrendComparison(
+                currentValue: currentValue,
+                previousValue: previousValue,
+                percentageChange: 0,
+                trend: .stable
+            )
+        }
+
+        let change = ((currentValue - previousValue) / previousValue) * 100
+        let trend: TrendComparison.TrendDirection
+
+        if abs(change) < 5 {
+            trend = .stable
+        } else if change > 0 {
+            trend = .up
+        } else {
+            trend = .down
+        }
+
+        return TrendComparison(
+            currentValue: currentValue,
+            previousValue: previousValue,
+            percentageChange: change,
+            trend: trend
+        )
+    }
+
+    /// Calculate sleep trend comparing this week to last week
+    static func sleepTrend(_ activities: [Activity]) -> TrendComparison {
+        let now = Date()
+        let oneWeekAgo = now.addingTimeInterval(-7 * 24 * 60 * 60)
+        let twoWeeksAgo = now.addingTimeInterval(-14 * 24 * 60 * 60)
+
+        let currentWeekActivities = activities.filter { $0.kind == .sleep && $0.timestamp >= oneWeekAgo && $0.timestamp <= now }
+        let previousWeekActivities = activities.filter { $0.kind == .sleep && $0.timestamp >= twoWeeksAgo && $0.timestamp < oneWeekAgo }
+
+        let currentSleepData = sliceDataToPlot(sleepActivities: currentWeekActivities)
+        let previousSleepData = sliceDataToPlot(sleepActivities: previousWeekActivities)
+
+        let currentAvg = averageDurationPerDay(currentSleepData) / 60  // in minutes
+        let previousAvg = averageDurationPerDay(previousSleepData) / 60
+
+        return calculateTrend(currentValue: currentAvg, previousValue: previousAvg)
+    }
+
+    /// Calculate milk intake trend comparing this week to last week
+    static func milkTrend(_ activities: [Activity]) -> TrendComparison {
+        let now = Date()
+        let oneWeekAgo = now.addingTimeInterval(-7 * 24 * 60 * 60)
+        let twoWeeksAgo = now.addingTimeInterval(-14 * 24 * 60 * 60)
+
+        let currentWeekActivities = activities.filter { $0.kind == .milk && $0.timestamp >= oneWeekAgo && $0.timestamp <= now }
+        let previousWeekActivities = activities.filter { $0.kind == .milk && $0.timestamp >= twoWeeksAgo && $0.timestamp < oneWeekAgo }
+
+        let currentAvg = averageDailyMilkIntake(currentWeekActivities)
+        let previousAvg = averageDailyMilkIntake(previousWeekActivities)
+
+        return calculateTrend(currentValue: currentAvg, previousValue: previousAvg)
+    }
+
+    /// Calculate diaper trend comparing this week to last week
+    static func diaperTrend(_ activities: [Activity]) -> TrendComparison {
+        let now = Date()
+        let oneWeekAgo = now.addingTimeInterval(-7 * 24 * 60 * 60)
+        let twoWeeksAgo = now.addingTimeInterval(-14 * 24 * 60 * 60)
+
+        let currentWeekActivities = activities.filter {
+            ($0.kind == .wetDiaper || $0.kind == .dirtyDiaper) && $0.timestamp >= oneWeekAgo && $0.timestamp <= now
+        }
+        let previousWeekActivities = activities.filter {
+            ($0.kind == .wetDiaper || $0.kind == .dirtyDiaper) && $0.timestamp >= twoWeeksAgo && $0.timestamp < oneWeekAgo
+        }
+
+        let currentAvg = averageDiapersPerDay(currentWeekActivities)
+        let previousAvg = averageDiapersPerDay(previousWeekActivities)
+
+        return calculateTrend(currentValue: currentAvg, previousValue: previousAvg)
+    }
+
+    // MARK: - Highlights Detection
+
+    /// Generates highlights/notable patterns from activity data
+    static func generateHighlights(_ activities: [Activity]) -> [ActivityHighlight] {
+        var highlights: [ActivityHighlight] = []
+
+        // Check for longest sleep stretch
+        if let longestSleep = longestSleepStretch(activities) {
+            if longestSleep.durationMinutes >= 240 {  // 4+ hours
+                highlights.append(ActivityHighlight(
+                    title: "Great Sleep Stretch!",
+                    description: "Longest sleep was \(formatMinutesShort(longestSleep.durationMinutes))",
+                    icon: "star.fill",
+                    color: .yellow,
+                    priority: 1
+                ))
+            }
+        }
+
+        // Check milk intake consistency
+        let milkData = milkDataByDay(activities)
+        if milkData.count >= 3 {
+            let amounts = milkData.map { Double($0.totalAmount) }
+            let avg = amounts.mean()
+            let variance = amounts.map { pow($0 - avg, 2) }.mean()
+            let stdDev = sqrt(variance)
+            let coefficientOfVariation = avg > 0 ? stdDev / avg : 0
+
+            if coefficientOfVariation < 0.2 && avg > 0 {
+                highlights.append(ActivityHighlight(
+                    title: "Consistent Feeding",
+                    description: "Milk intake has been very consistent",
+                    icon: "checkmark.circle.fill",
+                    color: .green,
+                    priority: 2
+                ))
+            }
+        }
+
+        // Check for good diaper output
+        let diaperData = diaperDataByDay(activities)
+        if let todayDiapers = diaperData.last, todayDiapers.wetCount >= 6 {
+            highlights.append(ActivityHighlight(
+                title: "Good Hydration",
+                description: "\(todayDiapers.wetCount) wet diapers today",
+                icon: "drop.fill",
+                color: .cyan,
+                priority: 3
+            ))
+        }
+
+        // Check sleep trend
+        let sleepTrendResult = sleepTrend(activities)
+        if sleepTrendResult.trend == .up && sleepTrendResult.percentageChange > 10 {
+            highlights.append(ActivityHighlight(
+                title: "Sleep Improving",
+                description: "Sleep is up \(Int(sleepTrendResult.percentageChange))% from last week",
+                icon: "arrow.up.circle.fill",
+                color: .indigo,
+                priority: 2
+            ))
+        }
+
+        return highlights.sorted { $0.priority < $1.priority }
+    }
+
+    private static func formatMinutesShort(_ minutes: Double) -> String {
+        let hours = Int(minutes) / 60
+        let mins = Int(minutes) % 60
+        if hours > 0 {
+            return "\(hours)h \(mins)m"
+        } else {
+            return "\(mins)m"
+        }
+    }
+
+    // MARK: - Heat Map Data
+
+    /// Groups activities by hour and day of week for heat map visualization
+    static func activityHeatMapData(_ activities: [Activity], kind: ActivityKind? = nil) -> [HourlyActivityData] {
+        let filtered: [Activity]
+        if let kind = kind {
+            filtered = activities.filter { $0.kind == kind }
+        } else {
+            filtered = activities
+        }
+
+        var data: [String: Int] = [:]
+
+        // Initialize all cells to 0
+        for day in 1...7 {
+            for hour in 0..<24 {
+                data["\(day)-\(hour)"] = 0
+            }
+        }
+
+        // Count activities
+        for activity in filtered {
+            let hour = Calendar.current.component(.hour, from: activity.timestamp)
+            let dayOfWeek = Calendar.current.component(.weekday, from: activity.timestamp)
+            let key = "\(dayOfWeek)-\(hour)"
+            data[key, default: 0] += 1
+        }
+
+        // Convert to array
+        return data.map { (key, count) in
+            let parts = key.split(separator: "-")
+            let day = Int(parts[0]) ?? 1
+            let hour = Int(parts[1]) ?? 0
+            return HourlyActivityData(hour: hour, dayOfWeek: day, count: count, kind: kind)
+        }.sorted { ($0.dayOfWeek, $0.hour) < ($1.dayOfWeek, $1.hour) }
+    }
+
+    // MARK: - Dashboard Summary
+
+    /// Creates daily summaries for all activity types
+    static func dailyActivitySummaries(_ activities: [Activity]) -> [DailyActivitySummary] {
+        let calendar = Calendar.current
+
+        // Group all activities by day
+        let groupedByDay = Dictionary(grouping: activities) {
+            calendar.startOfDay(for: $0.timestamp)
+        }
+
+        return groupedByDay.map { (date, dayActivities) in
+            // Sleep: sum durations
+            let sleepActivities = dayActivities.filter { $0.kind == .sleep && $0.endTimestamp != nil }
+            let sleepMinutes = sleepActivities.reduce(0.0) { total, activity in
+                guard let end = activity.endTimestamp else { return total }
+                return total + end.timeIntervalSince(activity.timestamp) / 60
+            }
+
+            // Milk: sum amounts
+            let milkActivities = dayActivities.filter { $0.kind == .milk }
+            let milkAmount = milkActivities.compactMap { $0.amount }.reduce(0, +)
+            let feedingCount = milkActivities.count
+
+            // Diapers: count
+            let diaperCount = dayActivities.filter { $0.kind == .wetDiaper || $0.kind == .dirtyDiaper }.count
+
+            return DailyActivitySummary(
+                date: date,
+                sleepMinutes: sleepMinutes,
+                milkAmount: milkAmount,
+                feedingCount: feedingCount,
+                diaperCount: diaperCount
+            )
+        }.sorted { $0.date < $1.date }
+    }
+
+    /// Gets today's summary
+    static func todaySummary(_ activities: [Activity]) -> DailyActivitySummary {
+        let today = Calendar.current.startOfDay(for: Date())
+        let todayActivities = activities.filter { Calendar.current.startOfDay(for: $0.timestamp) == today }
+
+        let summaries = dailyActivitySummaries(todayActivities)
+        return summaries.first ?? DailyActivitySummary(
+            date: today,
+            sleepMinutes: 0,
+            milkAmount: 0,
+            feedingCount: 0,
+            diaperCount: 0
+        )
+    }
+}
