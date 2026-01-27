@@ -850,3 +850,347 @@ struct EnhancedSleepAnalyticsTests {
         #expect(result.isEmpty)
     }
 }
+
+// MARK: - Dashboard & Trends Tests
+
+@MainActor
+struct DashboardTrendsTests {
+
+    // MARK: - calculateTrend Tests
+
+    @Test func calculateTrend_increase_returnsUpTrend() {
+        let result = DataController.calculateTrend(currentValue: 120, previousValue: 100)
+
+        #expect(result.currentValue == 120)
+        #expect(result.previousValue == 100)
+        #expect(result.percentageChange == 20.0)
+        #expect(result.trend == .up)
+    }
+
+    @Test func calculateTrend_decrease_returnsDownTrend() {
+        let result = DataController.calculateTrend(currentValue: 80, previousValue: 100)
+
+        #expect(result.currentValue == 80)
+        #expect(result.previousValue == 100)
+        #expect(result.percentageChange == -20.0)
+        #expect(result.trend == .down)
+    }
+
+    @Test func calculateTrend_smallChange_returnsStable() {
+        let result = DataController.calculateTrend(currentValue: 102, previousValue: 100)
+
+        #expect(result.trend == .stable) // 2% change is < 5% threshold
+    }
+
+    @Test func calculateTrend_zeroPreviousValue_returnsStable() {
+        let result = DataController.calculateTrend(currentValue: 100, previousValue: 0)
+
+        #expect(result.trend == .stable)
+        #expect(result.percentageChange == 0)
+    }
+
+    @Test func calculateTrend_bothZero_returnsStable() {
+        let result = DataController.calculateTrend(currentValue: 0, previousValue: 0)
+
+        #expect(result.trend == .stable)
+    }
+
+    // MARK: - TrendDirection Tests
+
+    @Test func trendDirection_up_hasCorrectProperties() {
+        let trend = TrendComparison.TrendDirection.up
+        #expect(trend.systemImage == "arrow.up")
+        #expect(trend.accessibilityLabel == "increased")
+    }
+
+    @Test func trendDirection_down_hasCorrectProperties() {
+        let trend = TrendComparison.TrendDirection.down
+        #expect(trend.systemImage == "arrow.down")
+        #expect(trend.accessibilityLabel == "decreased")
+    }
+
+    @Test func trendDirection_stable_hasCorrectProperties() {
+        let trend = TrendComparison.TrendDirection.stable
+        #expect(trend.systemImage == "minus")
+        #expect(trend.accessibilityLabel == "unchanged")
+    }
+
+    // MARK: - activityHeatMapData Tests
+
+    @Test func activityHeatMapData_emptyInput_returnsAllZeros() {
+        let result = DataController.activityHeatMapData([])
+
+        #expect(result.count == 168) // 7 days * 24 hours
+        #expect(result.allSatisfy { $0.count == 0 })
+    }
+
+    @Test func activityHeatMapData_singleActivity_countsCorrectly() {
+        let calendar = Calendar.current
+        var components = calendar.dateComponents([.year, .month, .day], from: Date())
+        components.hour = 10
+        components.minute = 0
+        let timestamp = calendar.date(from: components)!
+
+        let activities = [Activity(kind: .milk, timestamp: timestamp, endTimestamp: timestamp.addingTimeInterval(1800), amount: 100)]
+        let result = DataController.activityHeatMapData(activities)
+
+        let hour10Data = result.filter { $0.hour == 10 }
+        let dayOfWeek = calendar.component(.weekday, from: timestamp)
+        let matchingCell = hour10Data.first { $0.dayOfWeek == dayOfWeek }
+
+        #expect(matchingCell != nil)
+        #expect(matchingCell!.count == 1)
+    }
+
+    @Test func activityHeatMapData_filteredByKind_filtersCorrectly() {
+        let today = Calendar.current.startOfDay(for: Date())
+        let activities = [
+            Activity(kind: .milk, timestamp: today.addingTimeInterval(3600), endTimestamp: today.addingTimeInterval(4600), amount: 100),
+            Activity(kind: .sleep, timestamp: today.addingTimeInterval(7200), endTimestamp: today.addingTimeInterval(10800)),
+            Activity(kind: .wetDiaper, timestamp: today.addingTimeInterval(14400))
+        ]
+
+        let milkResult = DataController.activityHeatMapData(activities, kind: .milk)
+        let totalMilkCount = milkResult.reduce(0) { $0 + $1.count }
+
+        #expect(totalMilkCount == 1)
+    }
+
+    @Test func activityHeatMapData_multipleActivities_countsAll() {
+        let calendar = Calendar.current
+        var components = calendar.dateComponents([.year, .month, .day], from: Date())
+        components.hour = 8
+        components.minute = 0
+        let hour8 = calendar.date(from: components)!
+
+        let activities = [
+            Activity(kind: .milk, timestamp: hour8, endTimestamp: hour8.addingTimeInterval(1800), amount: 100),
+            Activity(kind: .milk, timestamp: hour8.addingTimeInterval(60), endTimestamp: hour8.addingTimeInterval(1860), amount: 100),
+            Activity(kind: .milk, timestamp: hour8.addingTimeInterval(120), endTimestamp: hour8.addingTimeInterval(1920), amount: 100)
+        ]
+
+        let result = DataController.activityHeatMapData(activities, kind: .milk)
+        let totalCount = result.reduce(0) { $0 + $1.count }
+
+        #expect(totalCount == 3)
+    }
+
+    // MARK: - dailyActivitySummaries Tests
+
+    @Test func dailyActivitySummaries_emptyInput_returnsEmpty() {
+        let result = DataController.dailyActivitySummaries([])
+        #expect(result.isEmpty)
+    }
+
+    @Test func dailyActivitySummaries_singleDay_aggregatesCorrectly() {
+        let today = Calendar.current.startOfDay(for: Date())
+        let activities = [
+            Activity(kind: .sleep, timestamp: today.addingTimeInterval(3600), endTimestamp: today.addingTimeInterval(7200)), // 1 hour sleep
+            Activity(kind: .milk, timestamp: today.addingTimeInterval(10800), endTimestamp: today.addingTimeInterval(12600), amount: 100),
+            Activity(kind: .milk, timestamp: today.addingTimeInterval(21600), endTimestamp: today.addingTimeInterval(23400), amount: 150),
+            Activity(kind: .wetDiaper, timestamp: today.addingTimeInterval(14400)),
+            Activity(kind: .dirtyDiaper, timestamp: today.addingTimeInterval(18000))
+        ]
+
+        let result = DataController.dailyActivitySummaries(activities)
+
+        #expect(result.count == 1)
+        #expect(result[0].sleepMinutes == 60.0) // 1 hour = 60 minutes
+        #expect(result[0].milkAmount == 250) // 100 + 150
+        #expect(result[0].feedingCount == 2)
+        #expect(result[0].diaperCount == 2)
+    }
+
+    @Test func dailyActivitySummaries_multipleDays_groupsSeparately() {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let yesterday = calendar.date(byAdding: .day, value: -1, to: today)!
+
+        let activities = [
+            Activity(kind: .milk, timestamp: today.addingTimeInterval(3600), endTimestamp: today.addingTimeInterval(5400), amount: 100),
+            Activity(kind: .milk, timestamp: yesterday.addingTimeInterval(3600), endTimestamp: yesterday.addingTimeInterval(5400), amount: 200)
+        ]
+
+        let result = DataController.dailyActivitySummaries(activities)
+
+        #expect(result.count == 2)
+        #expect(result[0].milkAmount == 200) // yesterday (sorted first)
+        #expect(result[1].milkAmount == 100) // today
+    }
+
+    @Test func dailyActivitySummaries_sleepWithNoEnd_treatsAsZeroDuration() {
+        let today = Calendar.current.startOfDay(for: Date())
+        let activities = [
+            Activity(kind: .sleep, timestamp: today.addingTimeInterval(3600), endTimestamp: nil, amount: nil)
+        ]
+
+        let result = DataController.dailyActivitySummaries(activities)
+
+        #expect(result.count == 1)
+        #expect(result[0].sleepMinutes == 0.0)
+    }
+
+    // MARK: - todaySummary Tests
+
+    @Test func todaySummary_noActivitiesToday_returnsZeroSummary() {
+        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: Date())!
+        let activities = [
+            Activity(kind: .milk, timestamp: yesterday, endTimestamp: yesterday.addingTimeInterval(1800), amount: 100)
+        ]
+
+        let result = DataController.todaySummary(activities)
+
+        #expect(result.sleepMinutes == 0)
+        #expect(result.milkAmount == 0)
+        #expect(result.feedingCount == 0)
+        #expect(result.diaperCount == 0)
+    }
+
+    @Test func todaySummary_withTodayActivities_calculatesCorrectly() {
+        let today = Calendar.current.startOfDay(for: Date())
+        let activities = [
+            Activity(kind: .sleep, timestamp: today.addingTimeInterval(3600), endTimestamp: today.addingTimeInterval(10800)), // 2 hours
+            Activity(kind: .milk, timestamp: today.addingTimeInterval(14400), endTimestamp: today.addingTimeInterval(16200), amount: 120),
+            Activity(kind: .wetDiaper, timestamp: today.addingTimeInterval(18000))
+        ]
+
+        let result = DataController.todaySummary(activities)
+
+        #expect(result.sleepMinutes == 120.0) // 2 hours
+        #expect(result.milkAmount == 120)
+        #expect(result.feedingCount == 1)
+        #expect(result.diaperCount == 1)
+    }
+
+    @Test func todaySummary_emptyInput_returnsZeroSummary() {
+        let result = DataController.todaySummary([])
+
+        #expect(result.sleepMinutes == 0)
+        #expect(result.milkAmount == 0)
+        #expect(result.feedingCount == 0)
+        #expect(result.diaperCount == 0)
+    }
+
+    // MARK: - generateHighlights Tests
+
+    @Test func generateHighlights_emptyInput_returnsEmpty() {
+        let result = DataController.generateHighlights([])
+        #expect(result.isEmpty)
+    }
+
+    @Test func generateHighlights_longSleep_includesHighlight() {
+        let today = Calendar.current.startOfDay(for: Date())
+        let activities = [
+            // 5 hour sleep (> 4 hour threshold)
+            Activity(kind: .sleep, timestamp: today.addingTimeInterval(3600), endTimestamp: today.addingTimeInterval(21600))
+        ]
+
+        let result = DataController.generateHighlights(activities)
+
+        let sleepHighlight = result.first { $0.title.contains("Sleep") }
+        #expect(sleepHighlight != nil)
+    }
+
+    @Test func generateHighlights_sortsByPriority() {
+        let today = Calendar.current.startOfDay(for: Date())
+        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: today)!
+        let twoDaysAgo = Calendar.current.date(byAdding: .day, value: -2, to: today)!
+
+        let activities = [
+            // Long sleep (priority 1)
+            Activity(kind: .sleep, timestamp: today.addingTimeInterval(3600), endTimestamp: today.addingTimeInterval(21600)),
+            // Wet diapers for hydration highlight
+            Activity(kind: .wetDiaper, timestamp: today.addingTimeInterval(3600)),
+            Activity(kind: .wetDiaper, timestamp: today.addingTimeInterval(7200)),
+            Activity(kind: .wetDiaper, timestamp: today.addingTimeInterval(10800)),
+            Activity(kind: .wetDiaper, timestamp: today.addingTimeInterval(14400)),
+            Activity(kind: .wetDiaper, timestamp: today.addingTimeInterval(18000)),
+            Activity(kind: .wetDiaper, timestamp: today.addingTimeInterval(21600)),
+            Activity(kind: .wetDiaper, timestamp: today.addingTimeInterval(25200)),
+            // Consistent milk across 3 days
+            Activity(kind: .milk, timestamp: today.addingTimeInterval(7200), endTimestamp: today.addingTimeInterval(9000), amount: 100),
+            Activity(kind: .milk, timestamp: yesterday.addingTimeInterval(7200), endTimestamp: yesterday.addingTimeInterval(9000), amount: 100),
+            Activity(kind: .milk, timestamp: twoDaysAgo.addingTimeInterval(7200), endTimestamp: twoDaysAgo.addingTimeInterval(9000), amount: 100)
+        ]
+
+        let result = DataController.generateHighlights(activities)
+
+        if result.count >= 2 {
+            // First highlight should have lower priority number (more important)
+            #expect(result[0].priority <= result[1].priority)
+        }
+    }
+}
+
+// MARK: - Heat Map Data Structure Tests
+
+struct HeatMapDataTests {
+
+    @Test func hourlyActivityData_idIsUnique() {
+        let data1 = HourlyActivityData(hour: 10, dayOfWeek: 1, count: 5, kind: .milk)
+        let data2 = HourlyActivityData(hour: 10, dayOfWeek: 2, count: 3, kind: .milk)
+        let data3 = HourlyActivityData(hour: 11, dayOfWeek: 1, count: 2, kind: .milk)
+
+        #expect(data1.id != data2.id)
+        #expect(data1.id != data3.id)
+        #expect(data2.id != data3.id)
+    }
+
+    @Test func hourlyActivityData_idFormat() {
+        let data = HourlyActivityData(hour: 10, dayOfWeek: 3, count: 5, kind: .milk)
+        #expect(data.id == "3-10")
+    }
+}
+
+// MARK: - Trend Comparison Structure Tests
+
+struct TrendComparisonTests {
+
+    @Test func trendComparison_storesValues() {
+        let comparison = TrendComparison(
+            currentValue: 150,
+            previousValue: 100,
+            percentageChange: 50,
+            trend: .up
+        )
+
+        #expect(comparison.currentValue == 150)
+        #expect(comparison.previousValue == 100)
+        #expect(comparison.percentageChange == 50)
+        #expect(comparison.trend == .up)
+    }
+}
+
+// MARK: - Daily Activity Summary Structure Tests
+
+struct DailyActivitySummaryTests {
+
+    @Test func dailyActivitySummary_idIsDate() {
+        let date = Date()
+        let summary = DailyActivitySummary(
+            date: date,
+            sleepMinutes: 120,
+            milkAmount: 500,
+            feedingCount: 5,
+            diaperCount: 8
+        )
+
+        #expect(summary.id == date)
+    }
+
+    @Test func dailyActivitySummary_storesAllValues() {
+        let date = Date()
+        let summary = DailyActivitySummary(
+            date: date,
+            sleepMinutes: 180,
+            milkAmount: 600,
+            feedingCount: 6,
+            diaperCount: 10
+        )
+
+        #expect(summary.sleepMinutes == 180)
+        #expect(summary.milkAmount == 600)
+        #expect(summary.feedingCount == 6)
+        #expect(summary.diaperCount == 10)
+    }
+}

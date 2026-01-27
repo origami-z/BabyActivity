@@ -11,8 +11,9 @@ BabyActivity/
 ├── BabyActivity/
 │   ├── BabyActivityApp.swift      # App entry point, ModelContainer setup
 │   ├── Activity.swift             # Core data model and ActivityKind enum
-│   ├── DataController.swift       # Preview data, utilities, and chart helpers
+│   ├── DataController.swift       # Preview data, utilities, chart helpers, trends & dashboard analytics
 │   ├── MainView.swift             # Tab-based navigation container
+│   ├── DashboardView.swift        # iOS Health-style dashboard with trends and highlights
 │   ├── ContentView.swift          # Activity list with quick-add buttons
 │   ├── ActivityListItemView.swift # List item display component
 │   ├── EditActivityView.swift     # Activity detail editor with forms
@@ -67,12 +68,18 @@ public enum ActivityKind: String, Equatable, Sendable, Codable {
 1. **Activity Logging** - Quick-add buttons for all 4 activity types
 2. **Activity List** - Chronological list with swipe-to-delete
 3. **Activity Editing** - Full CRUD with dynamic forms per activity type
-4. **Tab Navigation** - Activities and Summary tabs
+4. **Tab Navigation** - Dashboard, Activities, and Summary tabs
 5. **Sleep Analytics** - Bar chart visualization, day/night breakdown, longest stretch, quality indicators
 6. **Milk Analytics** - Daily intake charts, average per feeding, feeding intervals
 7. **Diaper Analytics** - Daily counts (wet vs dirty stacked bar), time-of-day patterns
 8. **Average Calculations** - Average durations and counts per day
 9. **Sample Data** - Pre-populated demo data for testing
+10. **iOS Health-Style Dashboard** - Today's summary with trend indicators, interactive charts, heat map, highlights
+11. **Trend Analysis** - Week-over-week comparison for sleep, milk, and diapers with percentage change
+12. **Interactive Line Charts** - Tap to select data points, smooth animations, Catmull-Rom interpolation
+13. **Activity Heat Map** - Visual pattern display by hour and day of week
+14. **Smart Highlights** - Automatic detection of notable patterns (long sleep, consistent feeding, good hydration)
+15. **Accessibility Support** - VoiceOver labels, Dynamic Type, accessibility hints
 
 ### Known Issues
 
@@ -108,11 +115,63 @@ struct PlotDuration: Identifiable {
 
 `sliceDataToPlot()` splits activities that span midnight into separate entries for accurate daily visualization.
 
+### Dashboard & Trends Data Structures (`DataController.swift`)
+
+```swift
+/// Week-over-week trend comparison
+struct TrendComparison {
+    var currentValue: Double
+    var previousValue: Double
+    var percentageChange: Double
+    var trend: TrendDirection  // .up, .down, .stable
+}
+
+/// Notable patterns detected automatically
+struct ActivityHighlight: Identifiable {
+    var title: String
+    var description: String
+    var icon: String
+    var color: Color
+    var priority: Int
+}
+
+/// Activity data by hour/day for heat map
+struct HourlyActivityData: Identifiable {
+    var hour: Int
+    var dayOfWeek: Int  // 1-7
+    var count: Int
+    var kind: ActivityKind?
+}
+
+/// Daily totals for dashboard
+struct DailyActivitySummary: Identifiable {
+    var date: Date
+    var sleepMinutes: Double
+    var milkAmount: Int
+    var feedingCount: Int
+    var diaperCount: Int
+}
+```
+
+### Dashboard Helper Functions
+
+| Function | Purpose |
+|----------|---------|
+| `calculateTrend()` | Compares current vs previous values, returns trend direction |
+| `sleepTrend()` | Week-over-week sleep comparison |
+| `milkTrend()` | Week-over-week milk intake comparison |
+| `diaperTrend()` | Week-over-week diaper count comparison |
+| `generateHighlights()` | Detects notable patterns (long sleep, consistency, hydration) |
+| `activityHeatMapData()` | Groups activities by hour and day of week |
+| `dailyActivitySummaries()` | Aggregates all activity types by day |
+| `todaySummary()` | Returns today's aggregated summary |
+
 ## UI Components
 
 | View | Purpose | Key Features |
 |------|---------|--------------|
-| `MainView` | Tab container | Activities, Summary tabs |
+| `MainView` | Tab container | Dashboard, Activities, Summary tabs |
+| `DashboardView` | Health-style dashboard | Today's summary, trend charts, heat map, highlights |
 | `ContentView` | Activity list | Quick-add buttons, list with navigation |
 | `ActivityListItemView` | List item | Icon, description, relative timestamp |
 | `EditActivityView` | Detail editor | Dynamic forms based on ActivityKind |
@@ -120,6 +179,18 @@ struct PlotDuration: Identifiable {
 | `SleepSummaryView` | Sleep analytics | Bar chart, day/night breakdown, longest stretch, quality badges |
 | `MilkSummaryView` | Milk analytics | Daily intake chart, feeding frequency, interval analysis |
 | `DiaperSummaryView` | Diaper analytics | Stacked bar chart (wet/dirty), hourly pattern distribution |
+
+### Dashboard Components (`DashboardView.swift`)
+
+| Component | Purpose |
+|-----------|---------|
+| `TrendStatCard` | Stat card with trend indicator (up/down/stable) |
+| `TrendIndicator` | Visual trend badge with percentage |
+| `InteractiveLineChart` | Line chart with tap-to-select and animations |
+| `CombinedActivityChart` | Bar chart showing feedings and diapers side-by-side |
+| `ActivityHeatMap` | Grid visualization of activity patterns by hour/day |
+| `HighlightCard` | Card displaying notable pattern highlights |
+| `QuickStatRow` | Compact stat row for weekly summaries |
 
 ## SF Symbols Used
 
@@ -165,6 +236,10 @@ let config = ModelConfiguration(isStoredInMemoryOnly: true)
 | `MilkAnalyticsTests` | `milkDataByDay`, `averageMilkPerFeeding`, `feedingIntervals`, etc. |
 | `DiaperAnalyticsTests` | `diaperDataByDay`, `diaperDataByHour`, `averageDiapersPerDay` |
 | `EnhancedSleepAnalyticsTests` | `longestSleepStretch`, `dayNightSleepBreakdown`, `sleepTrendData` |
+| `DashboardTrendsTests` | `calculateTrend`, trend directions, `activityHeatMapData`, `dailyActivitySummaries`, `todaySummary`, `generateHighlights` |
+| `HeatMapDataTests` | `HourlyActivityData` ID uniqueness and format |
+| `TrendComparisonTests` | `TrendComparison` structure values |
+| `DailyActivitySummaryTests` | `DailyActivitySummary` structure values and ID |
 
 ### Testing Requirements
 
