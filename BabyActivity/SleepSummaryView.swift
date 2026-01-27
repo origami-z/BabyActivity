@@ -91,7 +91,6 @@ struct SleepSummaryView: View {
             
             let startOfToday = Calendar.current.startOfDay(for: Date())
             
-            // TODO: fix average "day" includes 2 days
             let averageSleepTime = DataController.averageDurationPerDay(sleepData)
             
             let tmv = timeval(tv_sec: Int(averageSleepTime), tv_usec: 0)

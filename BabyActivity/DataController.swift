@@ -88,16 +88,19 @@ class DataController {
     }
     
     static func averageDurationPerDay(_ durations: [PlotDuration]) -> TimeInterval {
-        let groupedByDay = Dictionary(grouping: durations, by: { Calendar.current.dateComponents([.day], from: $0.start).day! })
-        let averageDurationPerDay = groupedByDay.values.map { $0.reduce(0) { $0 + $1.end.timeIntervalSince($1.start)}  }
-        return averageDurationPerDay.mean()
+        guard !durations.isEmpty else { return 0 }
+        // Group by full date (year, month, day) to avoid incorrectly grouping activities from different months
+        let groupedByDay = Dictionary(grouping: durations, by: { Calendar.current.startOfDay(for: $0.start) })
+        let totalDurationsPerDay = groupedByDay.values.map { $0.reduce(0) { $0 + $1.end.timeIntervalSince($1.start) } }
+        return totalDurationsPerDay.mean()
     }
 }
 
 extension Array where Element: FloatingPoint {
-    
+
     func mean() -> Element {
-        reduce(0, +) / Element(count)
+        guard !isEmpty else { return 0 }
+        return reduce(0, +) / Element(count)
     }
 }
 

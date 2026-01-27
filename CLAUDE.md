@@ -77,7 +77,7 @@ public enum ActivityKind: String, Equatable, Sendable, Codable {
 
 ### Known Issues
 
-- `SleepSummaryView.swift:94` - TODO: Average "day" calculation includes activities spanning 2 days incorrectly
+None currently.
 
 ## Key Components
 
@@ -123,7 +123,7 @@ struct PlotDuration: Identifiable {
 ## SF Symbols Used
 
 - Sleep: `zzz`
-- Milk: `backpack.circle`
+- Milk: `cup.and.saucer.fill`
 - Wet Diaper: `toilet`
 - Dirty Diaper: `tornado`
 
@@ -152,10 +152,22 @@ let config = ModelConfiguration(isStoredInMemoryOnly: true)
 - Unit tests in `BabyActivityTests/`
 - UI tests in `BabyActivityUITests/`
 - Uses Swift Testing framework
+- Comprehensive tests for:
+  - DataController utilities (`sliceDataToPlot`, `averageDurationPerDay`, `mean`)
+  - Activity model validation
+  - ActivityKind enum
+
+## Input Validation
+
+The Activity model includes validation for:
+- **Time range validation**: `endTimestamp` must be after `timestamp` for activities with duration
+- **Milk amount validation**: Amount must be between 0 and 500ml
+- Validation errors are displayed in the EditActivityView
 
 ## Deployment
 
-- **Minimum iOS**: 17.0 (required for SwiftData and Charts)
+- **Minimum iOS**: 18.0 (upgraded for latest Swift features)
+- **Minimum macOS**: 15.0
 - **Platforms**: iPhone and iPad
 - **Orientations**: Portrait and Landscape supported
 

@@ -62,6 +62,40 @@ final class Activity {
 }
 
 extension Activity {
+    // MARK: - Validation
+
+    /// Validates that endTimestamp is after timestamp for activities that have duration
+    var isValidTimeRange: Bool {
+        guard let end = endTimestamp else { return true }
+        return end > timestamp
+    }
+
+    /// Validates milk amount is within reasonable range (0-500ml)
+    var isValidMilkAmount: Bool {
+        guard kind == .milk else { return true }
+        guard let amt = amount else { return true }
+        return amt >= 0 && amt <= 500
+    }
+
+    /// Checks all validations for the activity
+    var isValid: Bool {
+        return isValidTimeRange && isValidMilkAmount
+    }
+
+    /// Returns validation error messages if any
+    var validationErrors: [String] {
+        var errors: [String] = []
+        if !isValidTimeRange {
+            errors.append("End time must be after start time")
+        }
+        if !isValidMilkAmount {
+            errors.append("Milk amount must be between 0 and 500ml")
+        }
+        return errors
+    }
+
+    // MARK: - Display
+
     var shortDisplay: String {
         switch kind {
         case .sleep: return "Sleep \(Duration.seconds(endTimestamp?.timeIntervalSince(timestamp) ?? 0).formatted(.units(allowed: [.hours, .minutes], width: .condensedAbbreviated)))"
@@ -72,7 +106,7 @@ extension Activity {
     }
     
     static var sleepImage: String = "zzz"
-    static var milkImage: String = "backpack.circle"
+    static var milkImage: String = "cup.and.saucer.fill"
     static var wetDiaperImage: String = "toilet"
     static var dirtyDiaperImage: String = "tornado"
     
