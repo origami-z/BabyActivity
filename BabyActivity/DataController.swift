@@ -12,9 +12,24 @@ import SwiftData
 class DataController {
     static let previewContainer: ModelContainer = {
         do {
-            let schema = Schema([Activity.self, GrowthMeasurement.self, Milestone.self])
+            let schema = Schema([Activity.self, GrowthMeasurement.self, Milestone.self, Baby.self, FamilyMember.self])
             let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
             let container = try ModelContainer(for: schema, configurations: config)
+
+            // Create a sample baby
+            let sampleBaby = Baby(
+                name: "Emma",
+                birthDate: Calendar.current.date(byAdding: .month, value: -6, to: Date()) ?? Date(),
+                ownerCloudKitID: "preview-user"
+            )
+            container.mainContext.insert(sampleBaby)
+
+            // Add a sample family member
+            let familyMember = sampleBaby.addFamilyMember(
+                cloudKitUserID: "family-member-1",
+                displayName: "Partner",
+                permission: .caregiver
+            )
 
             for activity in simulatedActivities {
                 container.mainContext.insert(activity)

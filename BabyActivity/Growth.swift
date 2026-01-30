@@ -48,11 +48,24 @@ final class GrowthMeasurement {
     var value: Double  // Weight in kg, height/head in cm
     var notes: String?
 
-    init(measurementType: GrowthMeasurementType, timestamp: Date, value: Double, notes: String? = nil) {
+    // iCloud sync and family sharing fields
+    var contributorId: String?       // iCloud user identifier who logged this
+    var contributorName: String?     // Display name of contributor
+    var lastModified: Date?          // For sync conflict resolution
+
+    // Relationship to Baby profile
+    @Relationship(inverse: \Baby.growthMeasurements)
+    var baby: Baby?
+
+    init(measurementType: GrowthMeasurementType, timestamp: Date, value: Double, notes: String? = nil,
+         contributorId: String? = nil, contributorName: String? = nil) {
         self.timestamp = timestamp
         self.measurementType = measurementType
         self.value = value
         self.notes = notes
+        self.contributorId = contributorId
+        self.contributorName = contributorName
+        self.lastModified = Date()
     }
 
     // MARK: - Display

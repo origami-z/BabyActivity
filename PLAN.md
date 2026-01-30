@@ -143,45 +143,48 @@ This document outlines the roadmap for improving BabyActivity from its current M
 
 ---
 
-## Phase 5: iCloud & Family Sharing
+## Phase 5: iCloud & Family Sharing ✅ COMPLETED
 
 **Priority: High | Effort: High**
 
 ### 5.1 iCloud Sync Setup
 
-- [ ] **Enable CloudKit**
-  - Add iCloud capability to entitlements
-  - Configure CloudKit container
-  - Migrate SwiftData to use CloudKit-backed store
+- [x] **Enable CloudKit**
+  - Added iCloud capability to entitlements
+  - Configured CloudKit container
+  - Migrated SwiftData to use CloudKit-backed store
 
 ```swift
-// Target configuration
+// CloudKit-backed configuration
 let modelConfiguration = ModelConfiguration(
     schema: schema,
+    isStoredInMemoryOnly: false,
     cloudKitDatabase: .automatic
 )
 ```
 
 ### 5.2 Multi-Device Sync
 
-- [ ] Automatic sync across user's devices
-- [ ] Conflict resolution strategy
-- [ ] Offline support with sync when connected
+- [x] Automatic sync across user's devices via CloudKit
+- [x] Conflict resolution via `lastModified` timestamp on all models
+- [x] Offline support with automatic sync when connected (CloudKit handles this)
 
 ### 5.3 Family Sharing
 
-- [ ] **Create shared CloudKit zone**
-  - Invite family members via iCloud
-  - Shared access to baby's data
+- [x] **Created FamilyMember model and sharing views**
+  - BabyProfileView for managing baby profiles
+  - FamilySharingView for inviting family members
+  - CloudSyncStatusView for displaying iCloud status
 
-- [ ] **Permission levels**
+- [x] **Permission levels (PermissionLevel enum)**
   - Admin: Full access, manage members
   - Caregiver: Add/edit activities
   - Viewer: Read-only access
 
-- [ ] **Activity attribution**
-  - Track who logged each activity
-  - Show contributor names in activity list
+- [x] **Activity attribution**
+  - All models have contributorId and contributorName fields
+  - ActivityListItemView shows contributor names
+  - CloudKitService provides current user info
 
 ### 5.4 Data Model Updates
 
@@ -192,6 +195,7 @@ final class Activity {
     var contributorId: String?      // iCloud user identifier
     var contributorName: String?    // Display name
     var lastModified: Date?         // For sync conflict resolution
+    var baby: Baby?                 // Relationship to Baby profile
 }
 
 @Model
@@ -200,7 +204,27 @@ final class Baby {
     var name: String
     var birthDate: Date
     var photoData: Data?
-    var sharedWith: [String]        // iCloud user IDs
+    var ownerCloudKitID: String?    // Creator's iCloud ID
+    var sharedWith: [FamilyMember]  // Family members with access
+    var activities: [Activity]
+    var growthMeasurements: [GrowthMeasurement]
+    var milestones: [Milestone]
+}
+
+@Model
+final class FamilyMember {
+    var id: UUID
+    var cloudKitUserID: String
+    var displayName: String
+    var permission: PermissionLevel
+    var addedDate: Date
+    var lastSyncDate: Date?
+}
+
+enum PermissionLevel: String, Codable, CaseIterable {
+    case admin       // Full access, manage members
+    case caregiver   // Add/edit activities
+    case viewer      // Read-only access
 }
 ```
 
@@ -265,12 +289,12 @@ class ActivityPredictor {
 
 **Priority: Low-Medium | Effort: Varies**
 
-### 7.1 Multiple Baby Profiles
+### 7.1 Multiple Baby Profiles ✅ COMPLETED (in Phase 5)
 
-- [ ] Create `Baby` model
-- [ ] Profile switcher in UI
-- [ ] Separate data storage per baby
-- [ ] Combined family view
+- [x] Create `Baby` model
+- [x] Profile switcher in UI (BabyProfileView)
+- [x] Separate data storage per baby
+- [ ] Combined family view (future)
 
 ### 7.2 Data Export/Import
 
@@ -324,18 +348,18 @@ class ActivityPredictor {
 
 ## Implementation Priority Matrix
 
-| Feature | Impact | Effort | Priority |
-|---------|--------|--------|----------|
-| Bug fixes | High | Low | P0 |
-| Milk/Diaper summaries | High | Medium | P1 |
-| iCloud sync | High | High | P1 |
-| Family sharing | High | High | P1 |
-| Health-style charts | Medium | Medium | P2 |
-| AI reminders | Medium | High | P2 |
-| New activity types | Medium | Medium | P3 |
-| Widgets | Low | Medium | P3 |
-| Watch app | Low | High | P4 |
-| CarPlay | Low | Medium | P4 |
+| Feature | Impact | Effort | Priority | Status |
+|---------|--------|--------|----------|--------|
+| Bug fixes | High | Low | P0 | ✅ |
+| Milk/Diaper summaries | High | Medium | P1 | ✅ |
+| iCloud sync | High | High | P1 | ✅ |
+| Family sharing | High | High | P1 | ✅ |
+| Health-style charts | Medium | Medium | P2 | ✅ |
+| AI reminders | Medium | High | P2 | Pending |
+| New activity types | Medium | Medium | P3 | ✅ |
+| Widgets | Low | Medium | P3 | Pending |
+| Watch app | Low | High | P4 | Pending |
+| CarPlay | Low | Medium | P4 | Pending |
 
 ---
 
