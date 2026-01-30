@@ -370,11 +370,35 @@ struct ActivityKindTests {
         #expect(ActivityKind.dirtyDiaper.description == "dirty diaper")
     }
 
+    @Test func description_solidFood_returnsCorrectString() {
+        #expect(ActivityKind.solidFood.description == "solid food")
+    }
+
+    @Test func description_tummyTime_returnsCorrectString() {
+        #expect(ActivityKind.tummyTime.description == "tummy time")
+    }
+
+    @Test func description_bathTime_returnsCorrectString() {
+        #expect(ActivityKind.bathTime.description == "bath time")
+    }
+
+    @Test func description_medicine_returnsCorrectString() {
+        #expect(ActivityKind.medicine.description == "medicine")
+    }
+
     @Test func rawValue_allCases_matchExpected() {
         #expect(ActivityKind.sleep.rawValue == "sleep")
         #expect(ActivityKind.milk.rawValue == "milk")
         #expect(ActivityKind.wetDiaper.rawValue == "wetDiaper")
         #expect(ActivityKind.dirtyDiaper.rawValue == "dirtyDiaper")
+        #expect(ActivityKind.solidFood.rawValue == "solidFood")
+        #expect(ActivityKind.tummyTime.rawValue == "tummyTime")
+        #expect(ActivityKind.bathTime.rawValue == "bathTime")
+        #expect(ActivityKind.medicine.rawValue == "medicine")
+    }
+
+    @Test func allCases_containsAllActivityTypes() {
+        #expect(ActivityKind.allCases.count == 8)
     }
 }
 
@@ -1192,5 +1216,418 @@ struct DailyActivitySummaryTests {
         #expect(summary.milkAmount == 600)
         #expect(summary.feedingCount == 6)
         #expect(summary.diaperCount == 10)
+    }
+}
+
+// MARK: - Phase 4: Extended Activity Types Tests
+
+struct ExtendedActivityTypesTests {
+
+    // MARK: - Solid Food Tests
+
+    @Test func solidFood_initialization_setsCorrectProperties() {
+        let timestamp = Date()
+        let activity = Activity(kind: .solidFood, timestamp: timestamp, foodType: "Banana puree")
+
+        #expect(activity.kind == .solidFood)
+        #expect(activity.timestamp == timestamp)
+        #expect(activity.foodType == "Banana puree")
+        #expect(activity.reactions == nil)
+    }
+
+    @Test func solidFood_withReaction_storesReaction() {
+        let activity = Activity(kind: .solidFood, timestamp: Date(), foodType: "Peanut butter", reactions: "Mild rash")
+
+        #expect(activity.foodType == "Peanut butter")
+        #expect(activity.reactions == "Mild rash")
+    }
+
+    @Test func solidFood_shortDisplay_showsFoodType() {
+        let activity = Activity(kind: .solidFood, timestamp: Date(), foodType: "Avocado")
+        #expect(activity.shortDisplay == "Food: Avocado")
+    }
+
+    @Test func solidFood_shortDisplay_unknownIfEmpty() {
+        let activity = Activity(kind: .solidFood, timestamp: Date(), endTimestamp: nil, amount: nil)
+        #expect(activity.shortDisplay == "Food: Unknown")
+    }
+
+    @Test func solidFood_image_returnsForkKnife() {
+        let activity = Activity(kind: .solidFood, timestamp: Date(), foodType: "Carrot")
+        #expect(activity.image == "fork.knife")
+    }
+
+    // MARK: - Tummy Time Tests
+
+    @Test func tummyTime_initialization_setsCorrectProperties() {
+        let start = Date()
+        let end = start.addingTimeInterval(900) // 15 minutes
+        let activity = Activity(kind: .tummyTime, timestamp: start, endTimestamp: end)
+
+        #expect(activity.kind == .tummyTime)
+        #expect(activity.timestamp == start)
+        #expect(activity.endTimestamp == end)
+    }
+
+    @Test func tummyTime_shortDisplay_showsDuration() {
+        let activity = Activity(kind: .tummyTime, timestamp: Date(), endTimestamp: Date().addingTimeInterval(900))
+        let display = activity.shortDisplay
+
+        #expect(display.contains("Tummy"))
+    }
+
+    @Test func tummyTime_image_returnsFigureChild() {
+        let activity = Activity(kind: .tummyTime, timestamp: Date(), endTimestamp: Date().addingTimeInterval(600))
+        #expect(activity.image == "figure.child")
+    }
+
+    // MARK: - Bath Time Tests
+
+    @Test func bathTime_initialization_setsCorrectProperties() {
+        let timestamp = Date()
+        let activity = Activity(kind: .bathTime, timestamp: timestamp)
+
+        #expect(activity.kind == .bathTime)
+        #expect(activity.timestamp == timestamp)
+        #expect(activity.endTimestamp == nil)
+    }
+
+    @Test func bathTime_shortDisplay_showsBathTime() {
+        let activity = Activity(kind: .bathTime, timestamp: Date())
+        #expect(activity.shortDisplay == "Bath time")
+    }
+
+    @Test func bathTime_image_returnsBathtub() {
+        let activity = Activity(kind: .bathTime, timestamp: Date())
+        #expect(activity.image == "bathtub.fill")
+    }
+
+    // MARK: - Medicine Tests
+
+    @Test func medicine_initialization_setsCorrectProperties() {
+        let timestamp = Date()
+        let activity = Activity(kind: .medicine, timestamp: timestamp, medicineName: "Vitamin D", dosage: "1 drop")
+
+        #expect(activity.kind == .medicine)
+        #expect(activity.timestamp == timestamp)
+        #expect(activity.medicineName == "Vitamin D")
+        #expect(activity.dosage == "1 drop")
+    }
+
+    @Test func medicine_shortDisplay_showsMedicineName() {
+        let activity = Activity(kind: .medicine, timestamp: Date(), medicineName: "Tylenol", dosage: "2.5ml")
+        #expect(activity.shortDisplay == "Medicine: Tylenol")
+    }
+
+    @Test func medicine_shortDisplay_noName_showsMedicine() {
+        let activity = Activity(kind: .medicine, timestamp: Date(), endTimestamp: nil, amount: nil)
+        #expect(activity.shortDisplay == "Medicine")
+    }
+
+    @Test func medicine_image_returnsCrossCase() {
+        let activity = Activity(kind: .medicine, timestamp: Date(), medicineName: "Ibuprofen", dosage: nil)
+        #expect(activity.image == "cross.case.fill")
+    }
+}
+
+// MARK: - Tummy Time Analytics Tests
+
+@MainActor
+struct TummyTimeAnalyticsTests {
+
+    @Test func tummyTimeDataByDay_singleDay_groupsCorrectly() {
+        let today = Calendar.current.startOfDay(for: Date())
+        let activities = [
+            Activity(kind: .tummyTime, timestamp: today.addingTimeInterval(3600), endTimestamp: today.addingTimeInterval(4500)), // 15 min
+            Activity(kind: .tummyTime, timestamp: today.addingTimeInterval(7200), endTimestamp: today.addingTimeInterval(7800))  // 10 min
+        ]
+
+        let result = DataController.tummyTimeDataByDay(activities)
+
+        #expect(result.count == 1)
+        #expect(result[0].totalMinutes == 25.0) // 15 + 10 minutes
+        #expect(result[0].sessionCount == 2)
+    }
+
+    @Test func tummyTimeDataByDay_emptyInput_returnsEmpty() {
+        let result = DataController.tummyTimeDataByDay([])
+        #expect(result.isEmpty)
+    }
+
+    @Test func tummyTimeDataByDay_nonTummyTime_filtersCorrectly() {
+        let today = Calendar.current.startOfDay(for: Date())
+        let activities = [
+            Activity(kind: .sleep, timestamp: today, endTimestamp: today.addingTimeInterval(3600)),
+            Activity(kind: .bathTime, timestamp: today)
+        ]
+
+        let result = DataController.tummyTimeDataByDay(activities)
+        #expect(result.isEmpty)
+    }
+
+    @Test func averageTummyTimePerDay_multipleDays_calculatesCorrectly() {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let yesterday = calendar.date(byAdding: .day, value: -1, to: today)!
+
+        let activities = [
+            // Today: 20 minutes
+            Activity(kind: .tummyTime, timestamp: today.addingTimeInterval(3600), endTimestamp: today.addingTimeInterval(4800)),
+            // Yesterday: 30 minutes
+            Activity(kind: .tummyTime, timestamp: yesterday.addingTimeInterval(3600), endTimestamp: yesterday.addingTimeInterval(5400))
+        ]
+
+        let result = DataController.averageTummyTimePerDay(activities)
+        #expect(result == 25.0) // (20 + 30) / 2
+    }
+
+    @Test func averageTummyTimePerDay_emptyInput_returnsZero() {
+        let result = DataController.averageTummyTimePerDay([])
+        #expect(result == 0)
+    }
+}
+
+// MARK: - Solid Food Analytics Tests
+
+@MainActor
+struct SolidFoodAnalyticsTests {
+
+    @Test func solidFoodDataByDay_singleDay_groupsCorrectly() {
+        let today = Calendar.current.startOfDay(for: Date())
+        let activities = [
+            Activity(kind: .solidFood, timestamp: today.addingTimeInterval(3600), foodType: "Banana"),
+            Activity(kind: .solidFood, timestamp: today.addingTimeInterval(7200), foodType: "Apple")
+        ]
+
+        let result = DataController.solidFoodDataByDay(activities)
+
+        #expect(result.count == 1)
+        #expect(result[0].mealCount == 2)
+        #expect(result[0].foods.count == 2)
+    }
+
+    @Test func solidFoodDataByDay_emptyInput_returnsEmpty() {
+        let result = DataController.solidFoodDataByDay([])
+        #expect(result.isEmpty)
+    }
+
+    @Test func uniqueFoodsIntroduced_returnsUniqueList() {
+        let today = Calendar.current.startOfDay(for: Date())
+        let activities = [
+            Activity(kind: .solidFood, timestamp: today.addingTimeInterval(3600), foodType: "Banana"),
+            Activity(kind: .solidFood, timestamp: today.addingTimeInterval(7200), foodType: "Apple"),
+            Activity(kind: .solidFood, timestamp: today.addingTimeInterval(10800), foodType: "Banana") // duplicate
+        ]
+
+        let result = DataController.uniqueFoodsIntroduced(activities)
+
+        #expect(result.count == 2)
+        #expect(result.contains("Banana"))
+        #expect(result.contains("Apple"))
+    }
+
+    @Test func uniqueFoodsIntroduced_emptyInput_returnsEmpty() {
+        let result = DataController.uniqueFoodsIntroduced([])
+        #expect(result.isEmpty)
+    }
+
+    @Test func foodsWithReactions_onlyReturnsReactedFoods() {
+        let today = Calendar.current.startOfDay(for: Date())
+        let activities = [
+            Activity(kind: .solidFood, timestamp: today.addingTimeInterval(3600), foodType: "Banana", reactions: nil),
+            Activity(kind: .solidFood, timestamp: today.addingTimeInterval(7200), foodType: "Peanut", reactions: "Mild rash"),
+            Activity(kind: .solidFood, timestamp: today.addingTimeInterval(10800), foodType: "Apple", reactions: "")
+        ]
+
+        let result = DataController.foodsWithReactions(activities)
+
+        #expect(result.count == 1)
+        #expect(result.contains("Peanut"))
+    }
+
+    @Test func foodsWithReactions_emptyInput_returnsEmpty() {
+        let result = DataController.foodsWithReactions([])
+        #expect(result.isEmpty)
+    }
+}
+
+// MARK: - Medicine Analytics Tests
+
+@MainActor
+struct MedicineAnalyticsTests {
+
+    @Test func medicineDataByDay_singleDay_groupsCorrectly() {
+        let today = Calendar.current.startOfDay(for: Date())
+        let activities = [
+            Activity(kind: .medicine, timestamp: today.addingTimeInterval(3600), medicineName: "Vitamin D", dosage: "1 drop"),
+            Activity(kind: .medicine, timestamp: today.addingTimeInterval(7200), medicineName: "Tylenol", dosage: "2.5ml")
+        ]
+
+        let result = DataController.medicineDataByDay(activities)
+
+        #expect(result.count == 1)
+        #expect(result[0].doseCount == 2)
+        #expect(result[0].medicines.count == 2)
+    }
+
+    @Test func medicineDataByDay_emptyInput_returnsEmpty() {
+        let result = DataController.medicineDataByDay([])
+        #expect(result.isEmpty)
+    }
+
+    @Test func uniqueMedicines_returnsUniqueList() {
+        let today = Calendar.current.startOfDay(for: Date())
+        let activities = [
+            Activity(kind: .medicine, timestamp: today.addingTimeInterval(3600), medicineName: "Vitamin D", dosage: nil),
+            Activity(kind: .medicine, timestamp: today.addingTimeInterval(7200), medicineName: "Tylenol", dosage: nil),
+            Activity(kind: .medicine, timestamp: today.addingTimeInterval(10800), medicineName: "Vitamin D", dosage: nil) // duplicate
+        ]
+
+        let result = DataController.uniqueMedicines(activities)
+
+        #expect(result.count == 2)
+        #expect(result.contains("Vitamin D"))
+        #expect(result.contains("Tylenol"))
+    }
+
+    @Test func uniqueMedicines_emptyInput_returnsEmpty() {
+        let result = DataController.uniqueMedicines([])
+        #expect(result.isEmpty)
+    }
+}
+
+// MARK: - Growth Model Tests
+
+struct GrowthMeasurementTests {
+
+    @Test func growthMeasurement_weightInitialization_setsCorrectProperties() {
+        let timestamp = Date()
+        let measurement = GrowthMeasurement(measurementType: .weight, timestamp: timestamp, value: 5.5, notes: "Morning weight")
+
+        #expect(measurement.measurementType == .weight)
+        #expect(measurement.timestamp == timestamp)
+        #expect(measurement.value == 5.5)
+        #expect(measurement.notes == "Morning weight")
+    }
+
+    @Test func growthMeasurement_shortDisplay_formatsCorrectly() {
+        let measurement = GrowthMeasurement(measurementType: .weight, timestamp: Date(), value: 6.2)
+        #expect(measurement.shortDisplay == "Weight: 6.2 kg")
+    }
+
+    @Test func growthMeasurement_heightShortDisplay_formatsCorrectly() {
+        let measurement = GrowthMeasurement(measurementType: .height, timestamp: Date(), value: 55.0)
+        #expect(measurement.shortDisplay == "Height: 55.0 cm")
+    }
+
+    @Test func growthMeasurement_headCircumferenceShortDisplay_formatsCorrectly() {
+        let measurement = GrowthMeasurement(measurementType: .headCircumference, timestamp: Date(), value: 35.5)
+        #expect(measurement.shortDisplay == "Head Circumference: 35.5 cm")
+    }
+
+    @Test func growthMeasurementType_weight_hasCorrectUnit() {
+        #expect(GrowthMeasurementType.weight.unit == "kg")
+    }
+
+    @Test func growthMeasurementType_height_hasCorrectUnit() {
+        #expect(GrowthMeasurementType.height.unit == "cm")
+    }
+
+    @Test func growthMeasurementType_headCircumference_hasCorrectUnit() {
+        #expect(GrowthMeasurementType.headCircumference.unit == "cm")
+    }
+
+    @Test func growthMeasurement_weightValidation_withinRange_isValid() {
+        let measurement = GrowthMeasurement(measurementType: .weight, timestamp: Date(), value: 10.0)
+        #expect(measurement.isValid == true)
+    }
+
+    @Test func growthMeasurement_weightValidation_exceedsMax_isInvalid() {
+        let measurement = GrowthMeasurement(measurementType: .weight, timestamp: Date(), value: 35.0)
+        #expect(measurement.isValid == false)
+    }
+
+    @Test func growthMeasurement_heightValidation_withinRange_isValid() {
+        let measurement = GrowthMeasurement(measurementType: .height, timestamp: Date(), value: 60.0)
+        #expect(measurement.isValid == true)
+    }
+
+    @Test func growthMeasurement_heightValidation_tooSmall_isInvalid() {
+        let measurement = GrowthMeasurement(measurementType: .height, timestamp: Date(), value: 15.0)
+        #expect(measurement.isValid == false)
+    }
+}
+
+// MARK: - Milestone Model Tests
+
+struct MilestoneTests {
+
+    @Test func milestone_initialization_setsCorrectProperties() {
+        let timestamp = Date()
+        let milestone = Milestone(milestoneType: .firstSmile, timestamp: timestamp, notes: "So adorable!")
+
+        #expect(milestone.milestoneType == .firstSmile)
+        #expect(milestone.timestamp == timestamp)
+        #expect(milestone.notes == "So adorable!")
+        #expect(milestone.customTitle == nil)
+        #expect(milestone.photoData == nil)
+    }
+
+    @Test func milestone_title_usesTypeDescription() {
+        let milestone = Milestone(milestoneType: .rollOver, timestamp: Date())
+        #expect(milestone.title == "Roll Over")
+    }
+
+    @Test func milestone_title_usesCustomTitleIfProvided() {
+        let milestone = Milestone(milestoneType: .other, timestamp: Date(), customTitle: "First laugh")
+        #expect(milestone.title == "First laugh")
+    }
+
+    @Test func milestone_image_returnsCorrectIcon() {
+        let milestone = Milestone(milestoneType: .firstSteps, timestamp: Date())
+        #expect(milestone.image == "figure.walk")
+    }
+
+    @Test func milestoneType_firstSmile_hasExpectedAgeRange() {
+        let expected = MilestoneType.firstSmile.expectedAgeMonths
+        #expect(expected != nil)
+        #expect(expected!.min == 1)
+        #expect(expected!.max == 3)
+    }
+
+    @Test func milestoneType_other_hasNoExpectedAgeRange() {
+        let expected = MilestoneType.other.expectedAgeMonths
+        #expect(expected == nil)
+    }
+
+    @Test func milestoneType_allCases_has16Types() {
+        #expect(MilestoneType.allCases.count == 16)
+    }
+
+    @Test func milestone_ageAtMilestone_calculatesCorrectly() {
+        let calendar = Calendar.current
+        let birthDate = calendar.date(byAdding: .month, value: -6, to: Date())!
+        let milestone = Milestone(milestoneType: .crawl, timestamp: Date())
+
+        let age = milestone.ageAtMilestone(birthDate: birthDate)
+        #expect(age == 6)
+    }
+
+    @Test func milestone_isWithinExpectedRange_whenEarly_returnsFalse() {
+        let calendar = Calendar.current
+        let birthDate = calendar.date(byAdding: .month, value: -3, to: Date())! // 3 months old
+        let milestone = Milestone(milestoneType: .crawl, timestamp: Date()) // crawl expected at 7-10 months
+
+        let result = milestone.isWithinExpectedRange(birthDate: birthDate)
+        #expect(result == false)
+    }
+
+    @Test func milestone_isWithinExpectedRange_whenWithin_returnsTrue() {
+        let calendar = Calendar.current
+        let birthDate = calendar.date(byAdding: .month, value: -8, to: Date())! // 8 months old
+        let milestone = Milestone(milestoneType: .crawl, timestamp: Date()) // crawl expected at 7-10 months
+
+        let result = milestone.isWithinExpectedRange(birthDate: birthDate)
+        #expect(result == true)
     }
 }
