@@ -25,7 +25,7 @@ class DataController {
             container.mainContext.insert(sampleBaby)
 
             // Add a sample family member
-            let familyMember = sampleBaby.addFamilyMember(
+            _ = sampleBaby.addFamilyMember(
                 cloudKitUserID: "family-member-1",
                 displayName: "Partner",
                 permission: .caregiver
