@@ -56,21 +56,9 @@ class CloudKitService: ObservableObject {
         do {
             let recordID = try await container.userRecordID()
             self.currentUserID = recordID.recordName
-
-            // Try to fetch the user's name from contacts
-            do {
-                let userIdentity = try await container.userIdentity(forUserRecordID: recordID)
-                if let nameComponents = userIdentity?.nameComponents {
-                    let formatter = PersonNameComponentsFormatter()
-                    self.currentUserName = formatter.string(from: nameComponents)
-                } else {
-                    self.currentUserName = "Me"
-                }
-            } catch {
-                // If we can't get the name, use a default
-                self.currentUserName = "Me"
-            }
-
+            // Note: userIdentity(forUserRecordID:) was deprecated in iOS 17.
+            // We use "Me" as the default display name.
+            self.currentUserName = "Me"
             self.errorMessage = nil
         } catch {
             self.errorMessage = error.localizedDescription
@@ -106,16 +94,9 @@ class CloudKitService: ObservableObject {
         }
     }
 
-    /// Fetches the user identity for a given user record ID
-    func fetchUserIdentity(for userRecordID: CKRecord.ID) async throws -> CKUserIdentity? {
-        return try await container.userIdentity(forUserRecordID: userRecordID)
-    }
-
-    /// Look up users by email address for sharing
-    func discoverUsers(byEmail emails: [String]) async throws -> [CKUserIdentity] {
-        let lookupInfos = emails.map { CKUserIdentity.LookupInfo(emailAddress: $0) }
-        return try await container.userIdentities(matching: lookupInfos)
-    }
+    /// Note: User identity lookup APIs were removed in iOS 17+.
+    /// For sharing, use CKShare-based flows instead.
+    /// See: https://developer.apple.com/documentation/cloudkit/shared_records
 
     // MARK: - Sync Status
 

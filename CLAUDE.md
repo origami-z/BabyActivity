@@ -372,9 +372,8 @@ Singleton service for iCloud operations:
 | Function | Purpose |
 |----------|---------|
 | `checkAccountStatus()` | Verifies iCloud sign-in status |
-| `fetchCurrentUserInfo()` | Gets current user's ID and name |
+| `fetchCurrentUserInfo()` | Gets current user's ID |
 | `createShare()` | Creates CKShare for baby profile sharing |
-| `discoverUsers()` | Looks up users by email for invitations |
 | `monitorSyncStatus()` | Monitors account changes |
 
 ## Date/Time Utilities
