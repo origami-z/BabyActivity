@@ -15,8 +15,16 @@ struct BabyActivityApp: App {
             Activity.self,
             GrowthMeasurement.self,
             Milestone.self,
+            Baby.self,
+            FamilyMember.self,
         ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+
+        // Configure CloudKit-backed store for iCloud sync
+        let modelConfiguration = ModelConfiguration(
+            schema: schema,
+            isStoredInMemoryOnly: false,
+            cloudKitDatabase: .automatic
+        )
 
         do {
             return try ModelContainer(for: schema, configurations: [modelConfiguration])

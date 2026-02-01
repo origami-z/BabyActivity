@@ -1631,3 +1631,374 @@ struct MilestoneTests {
         #expect(result == true)
     }
 }
+
+// MARK: - Phase 5: iCloud & Family Sharing Tests
+
+// MARK: - Permission Level Tests
+
+struct PermissionLevelTests {
+
+    @Test func permissionLevel_admin_hasCorrectDescription() {
+        #expect(PermissionLevel.admin.description == "Admin")
+    }
+
+    @Test func permissionLevel_caregiver_hasCorrectDescription() {
+        #expect(PermissionLevel.caregiver.description == "Caregiver")
+    }
+
+    @Test func permissionLevel_viewer_hasCorrectDescription() {
+        #expect(PermissionLevel.viewer.description == "Viewer")
+    }
+
+    @Test func permissionLevel_admin_hasCorrectDetailedDescription() {
+        #expect(PermissionLevel.admin.detailedDescription == "Full access and can manage family members")
+    }
+
+    @Test func permissionLevel_caregiver_hasCorrectDetailedDescription() {
+        #expect(PermissionLevel.caregiver.detailedDescription == "Can add and edit activities")
+    }
+
+    @Test func permissionLevel_viewer_hasCorrectDetailedDescription() {
+        #expect(PermissionLevel.viewer.detailedDescription == "Can only view activities")
+    }
+
+    @Test func permissionLevel_admin_hasCorrectIcon() {
+        #expect(PermissionLevel.admin.icon == "crown.fill")
+    }
+
+    @Test func permissionLevel_caregiver_hasCorrectIcon() {
+        #expect(PermissionLevel.caregiver.icon == "person.badge.plus")
+    }
+
+    @Test func permissionLevel_viewer_hasCorrectIcon() {
+        #expect(PermissionLevel.viewer.icon == "eye.fill")
+    }
+
+    @Test func permissionLevel_allCases_containsThreeLevels() {
+        #expect(PermissionLevel.allCases.count == 3)
+    }
+
+    @Test func permissionLevel_rawValues_matchExpected() {
+        #expect(PermissionLevel.admin.rawValue == "admin")
+        #expect(PermissionLevel.caregiver.rawValue == "caregiver")
+        #expect(PermissionLevel.viewer.rawValue == "viewer")
+    }
+}
+
+// MARK: - Family Member Tests
+
+struct FamilyMemberTests {
+
+    @Test func familyMember_initialization_setsCorrectProperties() {
+        let member = FamilyMember(cloudKitUserID: "user-123", displayName: "Partner", permission: .caregiver)
+
+        #expect(member.cloudKitUserID == "user-123")
+        #expect(member.displayName == "Partner")
+        #expect(member.permission == .caregiver)
+        #expect(member.id != UUID()) // Should have a valid UUID
+    }
+
+    @Test func familyMember_canEdit_adminReturnsTrue() {
+        let member = FamilyMember(cloudKitUserID: "user-123", displayName: "Admin", permission: .admin)
+        #expect(member.canEdit == true)
+    }
+
+    @Test func familyMember_canEdit_caregiverReturnsTrue() {
+        let member = FamilyMember(cloudKitUserID: "user-123", displayName: "Partner", permission: .caregiver)
+        #expect(member.canEdit == true)
+    }
+
+    @Test func familyMember_canEdit_viewerReturnsFalse() {
+        let member = FamilyMember(cloudKitUserID: "user-123", displayName: "Grandparent", permission: .viewer)
+        #expect(member.canEdit == false)
+    }
+
+    @Test func familyMember_canManageMembers_adminReturnsTrue() {
+        let member = FamilyMember(cloudKitUserID: "user-123", displayName: "Admin", permission: .admin)
+        #expect(member.canManageMembers == true)
+    }
+
+    @Test func familyMember_canManageMembers_caregiverReturnsFalse() {
+        let member = FamilyMember(cloudKitUserID: "user-123", displayName: "Partner", permission: .caregiver)
+        #expect(member.canManageMembers == false)
+    }
+
+    @Test func familyMember_canManageMembers_viewerReturnsFalse() {
+        let member = FamilyMember(cloudKitUserID: "user-123", displayName: "Grandparent", permission: .viewer)
+        #expect(member.canManageMembers == false)
+    }
+}
+
+// MARK: - Baby Model Tests
+
+struct BabyModelTests {
+
+    @Test func baby_initialization_setsCorrectProperties() {
+        let birthDate = Calendar.current.date(byAdding: .month, value: -6, to: Date())!
+        let baby = Baby(name: "Emma", birthDate: birthDate, ownerCloudKitID: "owner-123")
+
+        #expect(baby.name == "Emma")
+        #expect(baby.birthDate == birthDate)
+        #expect(baby.ownerCloudKitID == "owner-123")
+        #expect(baby.id != UUID()) // Should have a valid UUID
+        #expect(baby.sharedWith.isEmpty)
+    }
+
+    @Test func baby_shortDisplay_returnsName() {
+        let baby = Baby(name: "Emma", birthDate: Date())
+        #expect(baby.shortDisplay == "Emma")
+    }
+
+    @Test func baby_ageInMonths_calculatesCorrectly() {
+        let calendar = Calendar.current
+        let birthDate = calendar.date(byAdding: .month, value: -6, to: Date())!
+        let baby = Baby(name: "Emma", birthDate: birthDate)
+
+        #expect(baby.ageInMonths == 6)
+    }
+
+    @Test func baby_ageDisplay_singleMonth_formatsCorrectly() {
+        let calendar = Calendar.current
+        let birthDate = calendar.date(byAdding: .month, value: -1, to: Date())!
+        let baby = Baby(name: "Emma", birthDate: birthDate)
+
+        #expect(baby.ageDisplay == "1 month")
+    }
+
+    @Test func baby_ageDisplay_multipleMonths_formatsCorrectly() {
+        let calendar = Calendar.current
+        let birthDate = calendar.date(byAdding: .month, value: -6, to: Date())!
+        let baby = Baby(name: "Emma", birthDate: birthDate)
+
+        #expect(baby.ageDisplay == "6 months")
+    }
+
+    @Test func baby_ageDisplay_oneYear_formatsCorrectly() {
+        let calendar = Calendar.current
+        let birthDate = calendar.date(byAdding: .year, value: -1, to: Date())!
+        let baby = Baby(name: "Emma", birthDate: birthDate)
+
+        #expect(baby.ageDisplay == "1 year")
+    }
+
+    @Test func baby_isValid_validName_returnsTrue() {
+        let baby = Baby(name: "Emma", birthDate: Date())
+        #expect(baby.isValid == true)
+    }
+
+    @Test func baby_isValid_emptyName_returnsFalse() {
+        let baby = Baby(name: "", birthDate: Date())
+        #expect(baby.isValid == false)
+    }
+
+    @Test func baby_isValid_whitespaceOnlyName_returnsFalse() {
+        let baby = Baby(name: "   ", birthDate: Date())
+        #expect(baby.isValid == false)
+    }
+
+    @Test func baby_validationErrors_validName_returnsEmpty() {
+        let baby = Baby(name: "Emma", birthDate: Date())
+        #expect(baby.validationErrors.isEmpty)
+    }
+
+    @Test func baby_validationErrors_emptyName_returnsError() {
+        let baby = Baby(name: "", birthDate: Date())
+        let errors = baby.validationErrors
+
+        #expect(errors.count == 1)
+        #expect(errors.contains("Name cannot be empty"))
+    }
+
+    // MARK: - Family Sharing Tests
+
+    @Test func baby_addFamilyMember_addsCorrectly() {
+        let baby = Baby(name: "Emma", birthDate: Date())
+        let member = baby.addFamilyMember(cloudKitUserID: "user-123", displayName: "Partner", permission: .caregiver)
+
+        #expect(baby.sharedWith.count == 1)
+        #expect(member.displayName == "Partner")
+        #expect(member.permission == .caregiver)
+    }
+
+    @Test func baby_removeFamilyMember_removesCorrectly() {
+        let baby = Baby(name: "Emma", birthDate: Date())
+        _ = baby.addFamilyMember(cloudKitUserID: "user-123", displayName: "Partner", permission: .caregiver)
+
+        baby.removeFamilyMember(cloudKitUserID: "user-123")
+
+        #expect(baby.sharedWith.isEmpty)
+    }
+
+    @Test func baby_removeFamilyMember_nonExistentUser_doesNothing() {
+        let baby = Baby(name: "Emma", birthDate: Date())
+        _ = baby.addFamilyMember(cloudKitUserID: "user-123", displayName: "Partner", permission: .caregiver)
+
+        baby.removeFamilyMember(cloudKitUserID: "non-existent")
+
+        #expect(baby.sharedWith.count == 1)
+    }
+
+    @Test func baby_updatePermission_updatesCorrectly() {
+        let baby = Baby(name: "Emma", birthDate: Date())
+        let member = baby.addFamilyMember(cloudKitUserID: "user-123", displayName: "Partner", permission: .caregiver)
+
+        baby.updatePermission(for: "user-123", to: .admin)
+
+        #expect(member.permission == .admin)
+    }
+
+    @Test func baby_permission_ownerReturnsAdmin() {
+        let baby = Baby(name: "Emma", birthDate: Date(), ownerCloudKitID: "owner-123")
+
+        let permission = baby.permission(for: "owner-123")
+
+        #expect(permission == .admin)
+    }
+
+    @Test func baby_permission_memberReturnsTheirPermission() {
+        let baby = Baby(name: "Emma", birthDate: Date())
+        _ = baby.addFamilyMember(cloudKitUserID: "user-123", displayName: "Partner", permission: .caregiver)
+
+        let permission = baby.permission(for: "user-123")
+
+        #expect(permission == .caregiver)
+    }
+
+    @Test func baby_permission_unknownUserReturnsNil() {
+        let baby = Baby(name: "Emma", birthDate: Date())
+
+        let permission = baby.permission(for: "unknown-user")
+
+        #expect(permission == nil)
+    }
+
+    @Test func baby_hasPermission_viewer_allLevelsHaveAccess() {
+        let baby = Baby(name: "Emma", birthDate: Date(), ownerCloudKitID: "owner-123")
+        _ = baby.addFamilyMember(cloudKitUserID: "caregiver-123", displayName: "Partner", permission: .caregiver)
+        _ = baby.addFamilyMember(cloudKitUserID: "viewer-123", displayName: "Grandparent", permission: .viewer)
+
+        #expect(baby.hasPermission(.viewer, for: "owner-123") == true)
+        #expect(baby.hasPermission(.viewer, for: "caregiver-123") == true)
+        #expect(baby.hasPermission(.viewer, for: "viewer-123") == true)
+    }
+
+    @Test func baby_hasPermission_caregiver_onlyCaregiverAndAdminHaveAccess() {
+        let baby = Baby(name: "Emma", birthDate: Date(), ownerCloudKitID: "owner-123")
+        _ = baby.addFamilyMember(cloudKitUserID: "caregiver-123", displayName: "Partner", permission: .caregiver)
+        _ = baby.addFamilyMember(cloudKitUserID: "viewer-123", displayName: "Grandparent", permission: .viewer)
+
+        #expect(baby.hasPermission(.caregiver, for: "owner-123") == true)
+        #expect(baby.hasPermission(.caregiver, for: "caregiver-123") == true)
+        #expect(baby.hasPermission(.caregiver, for: "viewer-123") == false)
+    }
+
+    @Test func baby_hasPermission_admin_onlyAdminHasAccess() {
+        let baby = Baby(name: "Emma", birthDate: Date(), ownerCloudKitID: "owner-123")
+        _ = baby.addFamilyMember(cloudKitUserID: "caregiver-123", displayName: "Partner", permission: .caregiver)
+        _ = baby.addFamilyMember(cloudKitUserID: "viewer-123", displayName: "Grandparent", permission: .viewer)
+
+        #expect(baby.hasPermission(.admin, for: "owner-123") == true)
+        #expect(baby.hasPermission(.admin, for: "caregiver-123") == false)
+        #expect(baby.hasPermission(.admin, for: "viewer-123") == false)
+    }
+
+    @Test func baby_allUserIDs_includesOwnerAndMembers() {
+        let baby = Baby(name: "Emma", birthDate: Date(), ownerCloudKitID: "owner-123")
+        _ = baby.addFamilyMember(cloudKitUserID: "user-1", displayName: "Partner", permission: .caregiver)
+        _ = baby.addFamilyMember(cloudKitUserID: "user-2", displayName: "Grandparent", permission: .viewer)
+
+        let allIDs = baby.allUserIDs
+
+        #expect(allIDs.count == 3)
+        #expect(allIDs.contains("owner-123"))
+        #expect(allIDs.contains("user-1"))
+        #expect(allIDs.contains("user-2"))
+    }
+
+    @Test func baby_allUserIDs_ownerIsFirst() {
+        let baby = Baby(name: "Emma", birthDate: Date(), ownerCloudKitID: "owner-123")
+        _ = baby.addFamilyMember(cloudKitUserID: "user-1", displayName: "Partner", permission: .caregiver)
+
+        let allIDs = baby.allUserIDs
+
+        #expect(allIDs.first == "owner-123")
+    }
+}
+
+// MARK: - Activity Contributor Fields Tests
+
+struct ActivityContributorTests {
+
+    @Test func activity_contributorFields_setCorrectly() {
+        let activity = Activity(
+            kind: .milk,
+            timestamp: Date(),
+            endTimestamp: Date().addingTimeInterval(1800),
+            amount: 100,
+            contributorId: "user-123",
+            contributorName: "Partner"
+        )
+
+        #expect(activity.contributorId == "user-123")
+        #expect(activity.contributorName == "Partner")
+        #expect(activity.lastModified != nil)
+    }
+
+    @Test func activity_contributorFields_defaultToNil() {
+        let activity = Activity(kind: .wetDiaper, timestamp: Date())
+
+        #expect(activity.contributorId == nil)
+        #expect(activity.contributorName == nil)
+    }
+}
+
+// MARK: - GrowthMeasurement Contributor Fields Tests
+
+struct GrowthMeasurementContributorTests {
+
+    @Test func growthMeasurement_contributorFields_setCorrectly() {
+        let measurement = GrowthMeasurement(
+            measurementType: .weight,
+            timestamp: Date(),
+            value: 5.5,
+            contributorId: "user-123",
+            contributorName: "Partner"
+        )
+
+        #expect(measurement.contributorId == "user-123")
+        #expect(measurement.contributorName == "Partner")
+        #expect(measurement.lastModified != nil)
+    }
+
+    @Test func growthMeasurement_contributorFields_defaultToNil() {
+        let measurement = GrowthMeasurement(measurementType: .weight, timestamp: Date(), value: 5.5)
+
+        #expect(measurement.contributorId == nil)
+        #expect(measurement.contributorName == nil)
+    }
+}
+
+// MARK: - Milestone Contributor Fields Tests
+
+struct MilestoneContributorTests {
+
+    @Test func milestone_contributorFields_setCorrectly() {
+        let milestone = Milestone(
+            milestoneType: .firstSmile,
+            timestamp: Date(),
+            contributorId: "user-123",
+            contributorName: "Partner"
+        )
+
+        #expect(milestone.contributorId == "user-123")
+        #expect(milestone.contributorName == "Partner")
+        #expect(milestone.lastModified != nil)
+    }
+
+    @Test func milestone_contributorFields_defaultToNil() {
+        let milestone = Milestone(milestoneType: .firstSmile, timestamp: Date())
+
+        #expect(milestone.contributorId == nil)
+        #expect(milestone.contributorName == nil)
+    }
+}

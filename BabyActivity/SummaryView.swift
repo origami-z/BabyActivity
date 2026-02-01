@@ -11,6 +11,20 @@ struct SummaryView: View {
     var body: some View {
         NavigationStack {
             List {
+                // Profile & Settings Section
+                Section("Profile & Settings") {
+                    NavigationLink {
+                        BabyProfileView()
+                    } label: {
+                        SummaryRowView(
+                            title: "Baby Profiles",
+                            subtitle: "Manage profiles, family sharing",
+                            icon: "person.2.fill",
+                            color: .blue
+                        )
+                    }
+                }
+
                 Section("Core Activities") {
                     NavigationLink {
                         SleepSummaryView()

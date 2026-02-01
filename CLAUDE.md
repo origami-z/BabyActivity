@@ -9,17 +9,21 @@ BabyActivity is an iOS app built with SwiftUI and SwiftData to help parents trac
 ```
 BabyActivity/
 ├── BabyActivity/
-│   ├── BabyActivityApp.swift         # App entry point, ModelContainer setup
+│   ├── BabyActivityApp.swift         # App entry point, ModelContainer setup with CloudKit
 │   ├── Activity.swift                # Core activity model and ActivityKind enum
+│   ├── Baby.swift                    # Baby profile model with family sharing support
 │   ├── Growth.swift                  # Growth measurement model (weight, height, head)
 │   ├── Milestone.swift               # Milestone model with photo attachment support
+│   ├── CloudKitService.swift         # iCloud and CloudKit operations service
 │   ├── DataController.swift          # Preview data, utilities, chart helpers, trends & analytics
 │   ├── MainView.swift                # Tab-based navigation container
 │   ├── DashboardView.swift           # iOS Health-style dashboard with trends and highlights
 │   ├── ContentView.swift             # Activity list with quick-add buttons
-│   ├── ActivityListItemView.swift    # List item display component
+│   ├── ActivityListItemView.swift    # List item display component (with contributor info)
 │   ├── EditActivityView.swift        # Activity detail editor with forms
 │   ├── SummaryView.swift             # Summary navigation hub
+│   ├── BabyProfileView.swift         # Baby profile management view
+│   ├── FamilySharingView.swift       # Family sharing and permissions management
 │   ├── SleepSummaryView.swift        # Sleep analytics with chart
 │   ├── MilkSummaryView.swift         # Milk/feeding analytics with charts
 │   ├── DiaperSummaryView.swift       # Diaper analytics with charts
@@ -28,7 +32,7 @@ BabyActivity/
 │   ├── MedicineSummaryView.swift     # Medicine tracking with dosage history
 │   ├── GrowthSummaryView.swift       # Growth measurements with charts
 │   ├── MilestoneSummaryView.swift    # Developmental milestones with photos
-│   └── BabyActivity.entitlements     # App entitlements
+│   └── BabyActivity.entitlements     # App entitlements (iCloud, CloudKit)
 ├── BabyActivityTests/                # Unit tests
 └── BabyActivityUITests/              # UI tests
 ```
@@ -36,7 +40,8 @@ BabyActivity/
 ## Architecture
 
 - **UI Framework**: SwiftUI
-- **Data Persistence**: SwiftData (iOS 17+)
+- **Data Persistence**: SwiftData (iOS 17+) with CloudKit sync
+- **Cloud Sync**: CloudKit for iCloud sync and family sharing
 - **Charts**: Apple Charts framework
 - **Pattern**: MVVM-like with SwiftUI's declarative approach
 - **External Dependencies**: None (100% native Apple frameworks)
@@ -59,6 +64,12 @@ final class Activity {
     var medicineName: String?     // Medicine name (for medicine)
     var dosage: String?           // Dosage (for medicine)
     var notes: String?            // General notes
+
+    // iCloud sync and family sharing fields
+    var contributorId: String?    // iCloud user identifier who logged this
+    var contributorName: String?  // Display name of contributor
+    var lastModified: Date?       // For sync conflict resolution
+    var baby: Baby?               // Relationship to Baby profile
 }
 ```
 
@@ -99,6 +110,61 @@ final class Milestone {
     var customTitle: String?          // For custom milestones
     var notes: String?
     var photoData: Data?              // Photo attachment
+
+    // iCloud sync and family sharing fields
+    var contributorId: String?        // iCloud user identifier who logged this
+    var contributorName: String?      // Display name of contributor
+    var lastModified: Date?           // For sync conflict resolution
+    var baby: Baby?                   // Relationship to Baby profile
+}
+```
+
+### Baby (`Baby.swift`)
+
+Baby profile model with family sharing support:
+
+```swift
+@Model
+final class Baby {
+    var id: UUID
+    var name: String
+    var birthDate: Date
+    var photoData: Data?
+    var createdDate: Date
+    var lastModified: Date
+    var ownerCloudKitID: String?      // iCloud ID of the profile creator
+
+    var sharedWith: [FamilyMember]    // Family members with access
+    var activities: [Activity]         // Related activities
+    var growthMeasurements: [GrowthMeasurement]
+    var milestones: [Milestone]
+}
+```
+
+### FamilyMember (`Baby.swift`)
+
+Represents a family member with access to a baby's data:
+
+```swift
+@Model
+final class FamilyMember {
+    var id: UUID
+    var cloudKitUserID: String        // iCloud user identifier
+    var displayName: String
+    var permission: PermissionLevel   // admin, caregiver, or viewer
+    var addedDate: Date
+    var lastSyncDate: Date?
+    var baby: Baby?                   // Inverse relationship
+}
+```
+
+### PermissionLevel (`Baby.swift`)
+
+```swift
+public enum PermissionLevel: String, Codable, CaseIterable {
+    case admin       // Full access, manage members
+    case caregiver   // Add/edit activities
+    case viewer      // Read-only access
 }
 ```
 
@@ -127,6 +193,11 @@ final class Milestone {
 19. **Medicine Tracking** - Medicine name, dosage tracking, dose history
 20. **Growth Measurements** - Weight (kg), height (cm), head circumference tracking with charts
 21. **Milestone Tracking** - 16 common milestones with expected age ranges, photo attachment support
+22. **iCloud Sync** - CloudKit-backed data store for automatic sync across devices
+23. **Baby Profiles** - Create and manage multiple baby profiles with age display
+24. **Family Sharing** - Share baby data with family members via iCloud
+25. **Permission Levels** - Admin, Caregiver, and Viewer access levels for family members
+26. **Contributor Attribution** - Track who logged each activity with contributor name display
 
 ### Known Issues
 
@@ -220,9 +291,11 @@ struct DailyActivitySummary: Identifiable {
 | `MainView` | Tab container | Dashboard, Activities, Summary tabs |
 | `DashboardView` | Health-style dashboard | Today's summary, trend charts, heat map, highlights |
 | `ContentView` | Activity list | Quick-add buttons (2 rows), list with navigation |
-| `ActivityListItemView` | List item | Icon, description, relative timestamp |
+| `ActivityListItemView` | List item | Icon, description, relative timestamp, contributor name |
 | `EditActivityView` | Detail editor | Dynamic forms based on ActivityKind |
-| `SummaryView` | Analytics hub | Organized sections: Core Activities, Development, Health |
+| `SummaryView` | Analytics hub | Organized sections: Profile, Core Activities, Development, Health |
+| `BabyProfileView` | Profile management | Create/edit baby profiles, photo upload, family sharing access |
+| `FamilySharingView` | Family sharing | Invite members, manage permissions, view iCloud status |
 | `SleepSummaryView` | Sleep analytics | Bar chart, day/night breakdown, longest stretch, quality badges |
 | `MilkSummaryView` | Milk analytics | Daily intake chart, feeding frequency, interval analysis |
 | `DiaperSummaryView` | Diaper analytics | Stacked bar chart (wet/dirty), hourly pattern distribution |
@@ -263,7 +336,12 @@ struct DailyActivitySummary: Identifiable {
 ### Production (`BabyActivityApp.swift:13-24`)
 
 ```swift
-let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+// CloudKit-backed store for iCloud sync
+let modelConfiguration = ModelConfiguration(
+    schema: schema,
+    isStoredInMemoryOnly: false,
+    cloudKitDatabase: .automatic
+)
 ```
 
 ### Preview (`DataController.swift:13-26`)
@@ -271,6 +349,32 @@ let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly
 ```swift
 let config = ModelConfiguration(isStoredInMemoryOnly: true)
 ```
+
+## CloudKit & iCloud Setup
+
+### Entitlements (`BabyActivity.entitlements`)
+
+```xml
+<key>com.apple.developer.icloud-container-identifiers</key>
+<array>
+    <string>iCloud.$(CFBundleIdentifier)</string>
+</array>
+<key>com.apple.developer.icloud-services</key>
+<array>
+    <string>CloudKit</string>
+</array>
+```
+
+### CloudKitService (`CloudKitService.swift`)
+
+Singleton service for iCloud operations:
+
+| Function | Purpose |
+|----------|---------|
+| `checkAccountStatus()` | Verifies iCloud sign-in status |
+| `fetchCurrentUserInfo()` | Gets current user's ID |
+| `createShare()` | Creates CKShare for baby profile sharing |
+| `monitorSyncStatus()` | Monitors account changes |
 
 ## Date/Time Utilities
 
@@ -305,6 +409,12 @@ let config = ModelConfiguration(isStoredInMemoryOnly: true)
 | `MedicineAnalyticsTests` | `medicineDataByDay`, `uniqueMedicines` |
 | `GrowthMeasurementTests` | Initialization, display, validation for all measurement types |
 | `MilestoneTests` | Initialization, title, icons, age calculations, expected range |
+| `PermissionLevelTests` | Description, icon, raw values for all permission levels |
+| `FamilyMemberTests` | Initialization, canEdit, canManageMembers for each permission |
+| `BabyModelTests` | Initialization, age calculations, validation, family sharing methods |
+| `ActivityContributorTests` | Contributor fields initialization and defaults |
+| `GrowthMeasurementContributorTests` | Contributor fields initialization and defaults |
+| `MilestoneContributorTests` | Contributor fields initialization and defaults |
 
 ### Testing Requirements
 
@@ -348,12 +458,9 @@ The Activity model includes validation for:
 
 ## Not Yet Implemented
 
-- iCloud sync / CloudKit integration
-- Data sharing between family members
 - Push notifications / reminders
 - AI-based predictions
 - Data export/import
-- Multiple baby profiles
 - Widget support
 - Apple Watch companion
 

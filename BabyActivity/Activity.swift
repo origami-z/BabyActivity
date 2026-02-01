@@ -57,9 +57,19 @@ final class Activity {
     // General notes for any activity
     var notes: String?
 
+    // iCloud sync and family sharing fields
+    var contributorId: String?       // iCloud user identifier who logged this
+    var contributorName: String?     // Display name of contributor
+    var lastModified: Date?          // For sync conflict resolution
+
+    // Relationship to Baby profile
+    @Relationship(inverse: \Baby.activities)
+    var baby: Baby?
+
     init(kind: ActivityKind, timestamp: Date, endTimestamp: Date?, amount: Int?,
          foodType: String? = nil, reactions: String? = nil,
-         medicineName: String? = nil, dosage: String? = nil, notes: String? = nil) {
+         medicineName: String? = nil, dosage: String? = nil, notes: String? = nil,
+         contributorId: String? = nil, contributorName: String? = nil) {
         self.timestamp = timestamp
         self.kind = kind
         self.endTimestamp = endTimestamp
@@ -69,6 +79,9 @@ final class Activity {
         self.medicineName = medicineName
         self.dosage = dosage
         self.notes = notes
+        self.contributorId = contributorId
+        self.contributorName = contributorName
+        self.lastModified = Date()
     }
 
     // Simple timestamp activities (diaper, bath)
