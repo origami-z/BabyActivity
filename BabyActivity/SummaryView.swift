@@ -113,6 +113,19 @@ struct SummaryView: View {
                         )
                     }
                 }
+
+                Section("Intelligence") {
+                    NavigationLink {
+                        RemindersSettingsView()
+                    } label: {
+                        SummaryRowView(
+                            title: "Smart Reminders",
+                            subtitle: "AI-powered notifications, patterns",
+                            icon: "brain.head.profile",
+                            color: .pink
+                        )
+                    }
+                }
             }
             .navigationTitle("Summary")
         }
