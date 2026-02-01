@@ -430,9 +430,7 @@ struct EditPermissionView: View {
 // MARK: - Preview
 
 #Preview {
-    let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: Baby.self, FamilyMember.self, configurations: config)
-
+    let container = DataController.previewContainer
     let baby = Baby(name: "Emma", birthDate: Calendar.current.date(byAdding: .month, value: -6, to: Date())!)
     container.mainContext.insert(baby)
 

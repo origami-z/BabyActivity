@@ -319,14 +319,8 @@ struct EditBabyView: View {
 // MARK: - Preview
 
 #Preview("Profile List") {
-    let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: Baby.self, FamilyMember.self, configurations: config)
-
-    let baby = Baby(name: "Emma", birthDate: Calendar.current.date(byAdding: .month, value: -6, to: Date())!)
-    container.mainContext.insert(baby)
-
-    return BabyProfileView()
-        .modelContainer(container)
+    BabyProfileView()
+        .modelContainer(DataController.previewContainer)
 }
 
 #Preview("Add Baby") {
