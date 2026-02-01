@@ -14,21 +14,32 @@ struct RemindersSettingsView: View {
 
     @StateObject private var notificationService = NotificationService.shared
     @StateObject private var predictor = ActivityPredictor()
+    @StateObject private var foundationModelService = FoundationModelService.shared
 
     @AppStorage("reminderSettings") private var settingsData: Data = Data()
 
     @State private var settings = ReminderSettings()
     @State private var showTestNotification = false
     @State private var isAnalyzing = false
+    @State private var aiInsight: String?
+    @State private var sleepInsight: SleepInsight?
 
     var body: some View {
         List {
+            // AI Status Section
+            aiStatusSection
+
             // Authorization Section
             authorizationSection
 
             // Enable/Disable Section
             if notificationService.isAuthorized {
                 mainToggleSection
+            }
+
+            // AI Insights Section (only show if Foundation Models available)
+            if foundationModelService.isAvailable && predictor.hasLearnedPatterns {
+                aiInsightsSection
             }
 
             // Settings Sections (only show if enabled)
@@ -61,6 +72,98 @@ struct RemindersSettingsView: View {
         .onChange(of: settings) { _, newSettings in
             saveSettings()
             updateReminders()
+        }
+    }
+
+    // MARK: - AI Status Section
+
+    private var aiStatusSection: some View {
+        Section {
+            HStack {
+                Image(systemName: foundationModelService.isAvailable ? "cpu.fill" : "cpu")
+                    .foregroundStyle(foundationModelService.isAvailable ? .green : .secondary)
+                    .font(.title2)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("On-Device AI")
+                        .font(.headline)
+                    Text(foundationModelService.isAvailable ? "Foundation Models ready" : "Not available on this device")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                if foundationModelService.isAvailable {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                }
+            }
+            .padding(.vertical, 4)
+        } footer: {
+            if foundationModelService.isAvailable {
+                Text("AI-powered insights are generated entirely on your device for privacy.")
+            } else {
+                Text("This device doesn't support on-device AI. Basic pattern analysis is still available.")
+            }
+        }
+    }
+
+    // MARK: - AI Insights Section
+
+    private var aiInsightsSection: some View {
+        Section("AI Insights") {
+            if foundationModelService.isProcessing {
+                HStack {
+                    ProgressView()
+                    Text("Generating insights...")
+                        .foregroundStyle(.secondary)
+                }
+            } else if let insight = aiInsight {
+                VStack(alignment: .leading, spacing: 8) {
+                    Label("Daily Summary", systemImage: "sparkles")
+                        .font(.subheadline)
+                        .foregroundStyle(.pink)
+
+                    Text(insight)
+                        .font(.body)
+                }
+                .padding(.vertical, 4)
+            }
+
+            if let sleep = sleepInsight {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Label("Sleep Quality", systemImage: "moon.stars.fill")
+                            .font(.subheadline)
+                            .foregroundStyle(.indigo)
+
+                        Spacer()
+
+                        SleepQualityBadge(score: sleep.qualityScore)
+                    }
+
+                    Text(sleep.summary)
+                        .font(.body)
+
+                    if let suggestion = sleep.suggestion {
+                        Text(suggestion)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .italic()
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+
+            Button {
+                Task {
+                    await generateAIInsights()
+                }
+            } label: {
+                Label("Generate New Insights", systemImage: "sparkles")
+            }
+            .disabled(foundationModelService.isProcessing)
         }
     }
 
@@ -323,6 +426,14 @@ struct RemindersSettingsView: View {
             await notificationService.scheduleReminders(reminders)
         }
     }
+
+    private func generateAIInsights() async {
+        // Generate activity pattern insights
+        aiInsight = await foundationModelService.analyzeActivityPatterns(activities, patterns: predictor.patterns)
+
+        // Generate sleep quality analysis
+        sleepInsight = await foundationModelService.analyzeSleepQuality(activities)
+    }
 }
 
 // MARK: - Pattern Row
@@ -405,6 +516,22 @@ struct ConfidenceBadge: View {
         case 0.8...1.0: return .green
         case 0.5..<0.8: return .orange
         default: return .red
+        }
+    }
+}
+
+// MARK: - Sleep Quality Badge
+
+struct SleepQualityBadge: View {
+    let score: Int
+
+    var body: some View {
+        HStack(spacing: 2) {
+            ForEach(1...5, id: \.self) { index in
+                Image(systemName: index <= score ? "star.fill" : "star")
+                    .font(.caption2)
+                    .foregroundStyle(index <= score ? .yellow : .secondary.opacity(0.3))
+            }
         }
     }
 }

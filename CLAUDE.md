@@ -17,6 +17,7 @@ BabyActivity/
 │   ├── ActivityPattern.swift         # Pattern analysis and reminder data structures
 │   ├── ActivityPredictor.swift       # Pattern learning and prediction engine
 │   ├── NotificationService.swift     # Local notification handling for smart reminders
+│   ├── FoundationModelService.swift  # On-device AI using Foundation Models (iOS 26+)
 │   ├── CloudKitService.swift         # iCloud and CloudKit operations service
 │   ├── DataController.swift          # Preview data, utilities, chart helpers, trends & analytics
 │   ├── MainView.swift                # Tab-based navigation container
@@ -48,6 +49,7 @@ BabyActivity/
 - **Cloud Sync**: CloudKit for iCloud sync and family sharing
 - **Charts**: Apple Charts framework
 - **Notifications**: UserNotifications for smart reminders
+- **On-Device AI**: Foundation Models framework (iOS 26+) for pattern insights
 - **Pattern**: MVVM-like with SwiftUI's declarative approach
 - **External Dependencies**: None (100% native Apple frameworks)
 
@@ -372,6 +374,24 @@ Singleton service for local notifications:
 - `SNOOZE` - Snoozes reminder by 15 minutes
 - `DISMISS` - Dismisses the notification
 
+### FoundationModelService (`FoundationModelService.swift`)
+
+On-device AI service using Apple's Foundation Models framework (iOS 26+):
+
+| Function | Purpose |
+|----------|---------|
+| `checkAvailability()` | Checks if Foundation Models are available on device |
+| `analyzeActivityPatterns()` | Generates AI insights from activity data |
+| `generateSmartReminderMessage()` | Creates personalized reminder messages |
+| `analyzeSleepQuality()` | Analyzes sleep patterns and provides recommendations |
+| `predictOptimalTime()` | Predicts optimal time for next activity |
+
+**Key Features:**
+- All processing happens on-device for privacy
+- Graceful fallback when Foundation Models unavailable
+- Sleep quality scoring with suggestions
+- Natural language insights about baby's schedule
+
 ## UI Components
 
 | View | Purpose | Key Features |
@@ -545,8 +565,8 @@ The Activity model includes validation for:
 
 ## Deployment
 
-- **Minimum iOS**: 18.0 (upgraded for latest Swift features)
-- **Minimum macOS**: 15.0
+- **Minimum iOS**: 26.0 (upgraded for Foundation Models framework)
+- **Minimum macOS**: 26.0
 - **Platforms**: iPhone and iPad
 - **Orientations**: Portrait and Landscape supported
 
