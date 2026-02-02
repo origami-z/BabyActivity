@@ -140,7 +140,7 @@ struct RemindersSettingsView: View {
 
                         Spacer()
 
-                        SleepQualityBadge(score: sleep.qualityScore)
+                        SleepQualityStarRating(score: sleep.qualityScore)
                     }
 
                     Text(sleep.summary)
@@ -520,9 +520,9 @@ struct ConfidenceBadge: View {
     }
 }
 
-// MARK: - Sleep Quality Badge
+// MARK: - Sleep Quality Star Rating
 
-struct SleepQualityBadge: View {
+struct SleepQualityStarRating: View {
     let score: Int
 
     var body: some View {
