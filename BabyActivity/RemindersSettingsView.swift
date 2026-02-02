@@ -112,7 +112,7 @@ struct RemindersSettingsView: View {
     // MARK: - AI Insights Section
 
     private var aiInsightsSection: some View {
-        Section("AI Insights") {
+        Section {
             if foundationModelService.isProcessing {
                 HStack {
                     ProgressView()
@@ -164,6 +164,8 @@ struct RemindersSettingsView: View {
                 Label("Generate New Insights", systemImage: "sparkles")
             }
             .disabled(foundationModelService.isProcessing)
+        } header: {
+            Text("AI Insights")
         }
     }
 
@@ -221,7 +223,7 @@ struct RemindersSettingsView: View {
     // MARK: - Activity Types Section
 
     private var activityTypesSection: some View {
-        Section("Reminder Types") {
+        Section {
             ForEach(ActivityKind.allCases, id: \.self) { kind in
                 Toggle(isOn: Binding(
                     get: { settings.enabledActivityKinds.contains(kind) },
@@ -236,13 +238,15 @@ struct RemindersSettingsView: View {
                     Label(kind.description.capitalized, systemImage: iconForKind(kind))
                 }
             }
+        } header: {
+            Text("Reminder Types")
         }
     }
 
     // MARK: - Sensitivity Section
 
     private var sensitivitySection: some View {
-        Section("Reminder Frequency") {
+        Section {
             Picker("Sensitivity", selection: $settings.sensitivity) {
                 ForEach(ReminderSettings.Sensitivity.allCases, id: \.self) { sensitivity in
                     Text(sensitivity.description).tag(sensitivity)
@@ -253,13 +257,15 @@ struct RemindersSettingsView: View {
             Text(settings.sensitivity.detailedDescription)
                 .font(.caption)
                 .foregroundStyle(.secondary)
+        } header: {
+            Text("Reminder Frequency")
         }
     }
 
     // MARK: - Quiet Hours Section
 
     private var quietHoursSection: some View {
-        Section("Quiet Hours") {
+        Section {
             Toggle(isOn: $settings.quietHoursEnabled) {
                 Label("Enable Quiet Hours", systemImage: "moon.fill")
             }
@@ -287,6 +293,8 @@ struct RemindersSettingsView: View {
                     .labelsHidden()
                 }
             }
+        } header: {
+            Text("Quiet Hours")
         } footer: {
             if settings.quietHoursEnabled {
                 Text("No reminders will be sent during quiet hours.")
@@ -297,7 +305,7 @@ struct RemindersSettingsView: View {
     // MARK: - Pattern Analysis Section
 
     private var patternAnalysisSection: some View {
-        Section("Learned Patterns") {
+        Section {
             if isAnalyzing {
                 HStack {
                     ProgressView()
@@ -331,13 +339,15 @@ struct RemindersSettingsView: View {
             } label: {
                 Label("Re-analyze Patterns", systemImage: "arrow.clockwise")
             }
+        } header: {
+            Text("Learned Patterns")
         }
     }
 
     // MARK: - Upcoming Reminders Section
 
     private var upcomingRemindersSection: some View {
-        Section("Upcoming Reminders") {
+        Section {
             if predictor.predictions.isEmpty {
                 Text("No upcoming reminders")
                     .foregroundStyle(.secondary)
@@ -346,6 +356,8 @@ struct RemindersSettingsView: View {
                     PredictionRow(prediction: prediction)
                 }
             }
+        } header: {
+            Text("Upcoming Reminders")
         }
     }
 
@@ -353,7 +365,7 @@ struct RemindersSettingsView: View {
 
     #if DEBUG
     private var debugSection: some View {
-        Section("Debug") {
+        Section {
             Button("Send Test Notification") {
                 Task {
                     try? await notificationService.sendTestNotification()
@@ -370,6 +382,8 @@ struct RemindersSettingsView: View {
             Text("Scheduled: \(notificationService.scheduledNotifications.count) notifications")
                 .font(.caption)
                 .foregroundStyle(.secondary)
+        } header: {
+            Text("Debug")
         }
     }
     #endif
