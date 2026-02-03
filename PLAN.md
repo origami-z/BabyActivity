@@ -230,58 +230,83 @@ enum PermissionLevel: String, Codable, CaseIterable {
 
 ---
 
-## Phase 6: AI-Powered Smart Reminders
+## Phase 6: AI-Powered Smart Reminders ✅ COMPLETED
 
 **Priority: Medium | Effort: High**
 
 ### 6.1 Pattern Learning
 
-- [ ] **Analyze historical data**
-  - Learn typical feeding intervals
-  - Learn sleep patterns (nap times, bedtime)
-  - Learn diaper change frequency
+- [x] **Analyze historical data**
+  - ActivityPredictor learns typical feeding intervals
+  - Learns sleep patterns (nap times, bedtime)
+  - Learns diaper change frequency
+  - Uses median-based analysis for robustness
 
-- [ ] **On-device ML with Core ML**
-  - Create simple regression model for predictions
-  - Train on user's historical data
-  - Update model periodically
+- [x] **On-device pattern analysis**
+  - ActivityPattern structure with confidence scores
+  - Time-of-day probability distribution
+  - Coefficient of variation for consistency analysis
+  - Pattern updates when activities are analyzed
 
 ### 6.2 Smart Notifications
 
-- [ ] **Predictive reminders**
+- [x] **Predictive reminders**
   - "Baby usually feeds around this time"
   - "It's been X hours since last feeding"
   - "Nap time approaching based on wake window"
 
-- [ ] **Configurable alerts**
+- [x] **Configurable alerts**
   - Enable/disable per activity type
-  - Adjust sensitivity (aggressive vs conservative)
-  - Quiet hours setting
+  - Adjust sensitivity (conservative/balanced/aggressive)
+  - Quiet hours setting (default 10 PM - 7 AM)
+  - Minimum confidence threshold
 
-### 6.3 Implementation Approach
+### 6.3 Implementation
 
 ```swift
 // Pattern analysis structure
-struct ActivityPattern {
+struct ActivityPattern: Identifiable, Codable {
     var activityKind: ActivityKind
     var typicalIntervalMinutes: Double
-    var confidenceScore: Double
-    var timeOfDayDistribution: [Int: Double] // Hour -> Probability
+    var confidenceScore: Double  // 0.0 to 1.0
+    var timeOfDayDistribution: [Int: Double]  // Hour -> Probability
+    var sampleSize: Int
+    var lastUpdated: Date
+}
+
+// User settings for reminders
+struct ReminderSettings: Codable {
+    var isEnabled: Bool
+    var enabledActivityKinds: Set<ActivityKind>
+    var sensitivity: Sensitivity  // .conservative, .balanced, .aggressive
+    var quietHoursEnabled: Bool
+    var quietHoursStart: Int  // Hour (0-23)
+    var quietHoursEnd: Int
+    var minimumConfidence: Double
 }
 
 // Prediction engine
-class ActivityPredictor {
-    func predictNextActivity(for kind: ActivityKind) -> Date?
-    func getRecommendedReminders() -> [ScheduledReminder]
+class ActivityPredictor: ObservableObject {
+    func analyzePatterns(from activities: [Activity])
+    func generatePredictions(from:settings:) -> [ActivityPrediction]
+    func getScheduledReminders(settings:) -> [ScheduledReminder]
 }
 ```
 
 ### 6.4 Notification Implementation
 
-- [ ] Request notification permissions
-- [ ] Schedule local notifications
-- [ ] Handle notification actions (log activity from notification)
-- [ ] Support notification categories and actions
+- [x] Request notification permissions (NotificationService)
+- [x] Schedule local notifications
+- [x] Handle notification actions (log activity from notification)
+- [x] Support notification categories and actions (Log, Snooze, Dismiss)
+
+### 6.5 UI Components
+
+- [x] RemindersSettingsView for configuration
+- [x] PatternRow for displaying learned patterns
+- [x] PredictionRow for showing upcoming reminders
+- [x] ConfidenceBadge for confidence visualization
+- [x] Integration in SummaryView under "Intelligence" section
 
 ---
 
@@ -355,7 +380,7 @@ class ActivityPredictor {
 | iCloud sync | High | High | P1 | ✅ |
 | Family sharing | High | High | P1 | ✅ |
 | Health-style charts | Medium | Medium | P2 | ✅ |
-| AI reminders | Medium | High | P2 | Pending |
+| AI reminders | Medium | High | P2 | ✅ |
 | New activity types | Medium | Medium | P3 | ✅ |
 | Widgets | Low | Medium | P3 | Pending |
 | Watch app | Low | High | P4 | Pending |

@@ -7,9 +7,12 @@
 
 import SwiftUI
 import SwiftData
+import UserNotifications
 
 @main
 struct BabyActivityApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Activity.self,
@@ -38,5 +41,18 @@ struct BabyActivityApp: App {
             MainView()
         }
         .modelContainer(sharedModelContainer)
+    }
+}
+
+// MARK: - App Delegate for Notification Handling
+
+class AppDelegate: NSObject, UIApplicationDelegate {
+    func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
+    ) -> Bool {
+        // Set the notification center delegate
+        UNUserNotificationCenter.current().delegate = NotificationService.shared
+        return true
     }
 }
