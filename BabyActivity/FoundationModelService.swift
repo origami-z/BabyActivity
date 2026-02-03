@@ -29,7 +29,7 @@ class FoundationModelService: ObservableObject {
 
     /// Check if Foundation Models are available on this device
     func checkAvailability() async {
-        let availability = LanguageModelSession.Availability.current
+        let availability = SystemLanguageModel.default.availability
         isAvailable = availability == .available
     }
 
@@ -325,7 +325,6 @@ extension ActivityPredictor {
             enhancedPredictions.append(prediction)
         }
 
-        predictions = enhancedPredictions
         return enhancedPredictions
     }
 }
