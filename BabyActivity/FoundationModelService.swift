@@ -6,7 +6,10 @@
 //
 
 import Foundation
+
+#if canImport(FoundationModels)
 import FoundationModels
+#endif
 
 /// Service for on-device AI-powered activity analysis using Foundation Models
 @MainActor
@@ -17,26 +20,31 @@ class FoundationModelService: ObservableObject {
     @Published private(set) var lastInsight: String?
     @Published private(set) var isProcessing: Bool = false
 
-    private var session: LanguageModelSession?
-
     init() {
+        #if canImport(FoundationModels)
         Task {
             await checkAvailability()
         }
+        #endif
     }
 
     // MARK: - Availability
 
     /// Check if Foundation Models are available on this device
     func checkAvailability() async {
+        #if canImport(FoundationModels)
         let availability = SystemLanguageModel.default.availability
         isAvailable = availability == .available
+        #else
+        isAvailable = false
+        #endif
     }
 
     // MARK: - Activity Analysis
 
     /// Analyze activity patterns and generate insights using on-device AI
     func analyzeActivityPatterns(_ activities: [Activity], patterns: [ActivityKind: ActivityPattern]) async -> String? {
+        #if canImport(FoundationModels)
         guard isAvailable else {
             return nil
         }
@@ -72,10 +80,14 @@ class FoundationModelService: ObservableObject {
             print("Foundation Models error: \(error)")
             return nil
         }
+        #else
+        return nil
+        #endif
     }
 
     /// Generate a personalized reminder message using AI
     func generateSmartReminderMessage(for kind: ActivityKind, pattern: ActivityPattern, lastActivity: Activity) async -> String? {
+        #if canImport(FoundationModels)
         guard isAvailable else {
             return ActivityPrediction.generateMessage(for: kind, timeSinceLast: Date().timeIntervalSince(lastActivity.endTimestamp ?? lastActivity.timestamp))
         }
@@ -113,10 +125,14 @@ class FoundationModelService: ObservableObject {
             // Fallback to standard message
             return ActivityPrediction.generateMessage(for: kind, timeSinceLast: Date().timeIntervalSince(lastActivity.endTimestamp ?? lastActivity.timestamp))
         }
+        #else
+        return ActivityPrediction.generateMessage(for: kind, timeSinceLast: Date().timeIntervalSince(lastActivity.endTimestamp ?? lastActivity.timestamp))
+        #endif
     }
 
     /// Analyze sleep quality and provide recommendations
     func analyzeSleepQuality(_ sleepActivities: [Activity]) async -> SleepInsight? {
+        #if canImport(FoundationModels)
         guard isAvailable else { return nil }
 
         isProcessing = true
@@ -177,10 +193,14 @@ class FoundationModelService: ObservableObject {
             print("Sleep analysis error: \(error)")
             return nil
         }
+        #else
+        return nil
+        #endif
     }
 
     /// Predict optimal activity time based on patterns and current context
     func predictOptimalTime(for kind: ActivityKind, pattern: ActivityPattern, lastActivity: Activity?) async -> Date? {
+        #if canImport(FoundationModels)
         guard isAvailable, let lastActivity = lastActivity else {
             // Fallback to simple calculation
             if let last = lastActivity {
@@ -228,6 +248,13 @@ class FoundationModelService: ObservableObject {
             let endTime = lastActivity.endTimestamp ?? lastActivity.timestamp
             return endTime.addingTimeInterval(pattern.typicalIntervalMinutes * 60)
         }
+        #else
+        if let last = lastActivity {
+            let endTime = last.endTimestamp ?? last.timestamp
+            return endTime.addingTimeInterval(pattern.typicalIntervalMinutes * 60)
+        }
+        return nil
+        #endif
     }
 
     // MARK: - Helpers
