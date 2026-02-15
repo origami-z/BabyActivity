@@ -2002,3 +2002,484 @@ struct MilestoneContributorTests {
         #expect(milestone.contributorName == nil)
     }
 }
+
+// MARK: - Phase 6: AI-Powered Smart Reminders Tests
+
+// MARK: - Activity Pattern Tests
+
+struct ActivityPatternTests {
+
+    @Test func activityPattern_initialization_setsCorrectProperties() {
+        let pattern = ActivityPattern(
+            activityKind: .milk,
+            typicalIntervalMinutes: 180.0,
+            confidenceScore: 0.85,
+            timeOfDayDistribution: [8: 0.3, 12: 0.4, 18: 0.3],
+            sampleSize: 20,
+            lastUpdated: Date()
+        )
+
+        #expect(pattern.activityKind == .milk)
+        #expect(pattern.typicalIntervalMinutes == 180.0)
+        #expect(pattern.confidenceScore == 0.85)
+        #expect(pattern.sampleSize == 20)
+    }
+
+    @Test func activityPattern_intervalDescription_hours_formatsCorrectly() {
+        let pattern = ActivityPattern(
+            activityKind: .sleep,
+            typicalIntervalMinutes: 180.0,
+            confidenceScore: 0.7,
+            timeOfDayDistribution: [:],
+            sampleSize: 10,
+            lastUpdated: Date()
+        )
+
+        #expect(pattern.intervalDescription == "3h")
+    }
+
+    @Test func activityPattern_intervalDescription_hoursAndMinutes_formatsCorrectly() {
+        let pattern = ActivityPattern(
+            activityKind: .milk,
+            typicalIntervalMinutes: 150.0,
+            confidenceScore: 0.7,
+            timeOfDayDistribution: [:],
+            sampleSize: 10,
+            lastUpdated: Date()
+        )
+
+        #expect(pattern.intervalDescription == "2h 30m")
+    }
+
+    @Test func activityPattern_intervalDescription_minutesOnly_formatsCorrectly() {
+        let pattern = ActivityPattern(
+            activityKind: .wetDiaper,
+            typicalIntervalMinutes: 45.0,
+            confidenceScore: 0.7,
+            timeOfDayDistribution: [:],
+            sampleSize: 10,
+            lastUpdated: Date()
+        )
+
+        #expect(pattern.intervalDescription == "45m")
+    }
+
+    @Test func activityPattern_confidenceDescription_high_returnsHigh() {
+        let pattern = ActivityPattern(
+            activityKind: .sleep,
+            typicalIntervalMinutes: 180.0,
+            confidenceScore: 0.85,
+            timeOfDayDistribution: [:],
+            sampleSize: 10,
+            lastUpdated: Date()
+        )
+
+        #expect(pattern.confidenceDescription == "High")
+    }
+
+    @Test func activityPattern_confidenceDescription_medium_returnsMedium() {
+        let pattern = ActivityPattern(
+            activityKind: .sleep,
+            typicalIntervalMinutes: 180.0,
+            confidenceScore: 0.6,
+            timeOfDayDistribution: [:],
+            sampleSize: 10,
+            lastUpdated: Date()
+        )
+
+        #expect(pattern.confidenceDescription == "Medium")
+    }
+
+    @Test func activityPattern_confidenceDescription_low_returnsLow() {
+        let pattern = ActivityPattern(
+            activityKind: .sleep,
+            typicalIntervalMinutes: 180.0,
+            confidenceScore: 0.3,
+            timeOfDayDistribution: [:],
+            sampleSize: 10,
+            lastUpdated: Date()
+        )
+
+        #expect(pattern.confidenceDescription == "Low")
+    }
+
+    @Test func activityPattern_peakHours_returnsTopThree() {
+        let pattern = ActivityPattern(
+            activityKind: .milk,
+            typicalIntervalMinutes: 180.0,
+            confidenceScore: 0.7,
+            timeOfDayDistribution: [8: 0.4, 12: 0.3, 16: 0.2, 20: 0.1],
+            sampleSize: 10,
+            lastUpdated: Date()
+        )
+
+        let peakHours = pattern.peakHours
+        #expect(peakHours.count == 3)
+        #expect(peakHours[0] == 8)  // Highest probability
+        #expect(peakHours[1] == 12) // Second highest
+        #expect(peakHours[2] == 16) // Third highest
+    }
+}
+
+// MARK: - Reminder Settings Tests
+
+struct ReminderSettingsTests {
+
+    @Test func reminderSettings_defaultValues_areCorrect() {
+        let settings = ReminderSettings()
+
+        #expect(settings.isEnabled == true)
+        #expect(settings.enabledActivityKinds.count == ActivityKind.allCases.count)
+        #expect(settings.sensitivity == .balanced)
+        #expect(settings.quietHoursEnabled == true)
+        #expect(settings.quietHoursStart == 22)
+        #expect(settings.quietHoursEnd == 7)
+        #expect(settings.minimumConfidence == 0.5)
+    }
+
+    @Test func reminderSettings_isEnabledForKind_whenEnabledAndKindIncluded_returnsTrue() {
+        var settings = ReminderSettings()
+        settings.isEnabled = true
+        settings.enabledActivityKinds = [.milk, .sleep]
+
+        #expect(settings.isEnabled(for: .milk) == true)
+        #expect(settings.isEnabled(for: .sleep) == true)
+    }
+
+    @Test func reminderSettings_isEnabledForKind_whenKindNotIncluded_returnsFalse() {
+        var settings = ReminderSettings()
+        settings.isEnabled = true
+        settings.enabledActivityKinds = [.milk]
+
+        #expect(settings.isEnabled(for: .sleep) == false)
+    }
+
+    @Test func reminderSettings_isEnabledForKind_whenDisabled_returnsFalse() {
+        var settings = ReminderSettings()
+        settings.isEnabled = false
+        settings.enabledActivityKinds = [.milk, .sleep]
+
+        #expect(settings.isEnabled(for: .milk) == false)
+    }
+
+    @Test func reminderSettings_isQuietHours_duringQuietHours_returnsTrue() {
+        var settings = ReminderSettings()
+        settings.quietHoursEnabled = true
+        settings.quietHoursStart = 22  // 10 PM
+        settings.quietHoursEnd = 7     // 7 AM
+
+        let calendar = Calendar.current
+        var components = calendar.dateComponents([.year, .month, .day], from: Date())
+        components.hour = 23  // 11 PM (within quiet hours)
+        let lateNight = calendar.date(from: components)!
+
+        #expect(settings.isQuietHours(at: lateNight) == true)
+    }
+
+    @Test func reminderSettings_isQuietHours_outsideQuietHours_returnsFalse() {
+        var settings = ReminderSettings()
+        settings.quietHoursEnabled = true
+        settings.quietHoursStart = 22
+        settings.quietHoursEnd = 7
+
+        let calendar = Calendar.current
+        var components = calendar.dateComponents([.year, .month, .day], from: Date())
+        components.hour = 12  // Noon (outside quiet hours)
+        let noon = calendar.date(from: components)!
+
+        #expect(settings.isQuietHours(at: noon) == false)
+    }
+
+    @Test func reminderSettings_isQuietHours_whenDisabled_returnsFalse() {
+        var settings = ReminderSettings()
+        settings.quietHoursEnabled = false
+        settings.quietHoursStart = 22
+        settings.quietHoursEnd = 7
+
+        let calendar = Calendar.current
+        var components = calendar.dateComponents([.year, .month, .day], from: Date())
+        components.hour = 23
+        let lateNight = calendar.date(from: components)!
+
+        #expect(settings.isQuietHours(at: lateNight) == false)
+    }
+
+    @Test func reminderSettings_sensitivity_conservativeHasHigherMinimumConfidence() {
+        let conservative = ReminderSettings.Sensitivity.conservative
+        let balanced = ReminderSettings.Sensitivity.balanced
+        let aggressive = ReminderSettings.Sensitivity.aggressive
+
+        #expect(conservative.minimumConfidence > balanced.minimumConfidence)
+        #expect(balanced.minimumConfidence > aggressive.minimumConfidence)
+    }
+
+    @Test func reminderSettings_sensitivity_conservativeHasHigherIntervalMultiplier() {
+        let conservative = ReminderSettings.Sensitivity.conservative
+        let balanced = ReminderSettings.Sensitivity.balanced
+        let aggressive = ReminderSettings.Sensitivity.aggressive
+
+        #expect(conservative.intervalMultiplier > balanced.intervalMultiplier)
+        #expect(balanced.intervalMultiplier > aggressive.intervalMultiplier)
+    }
+
+    @Test func reminderSettings_sensitivity_allCases_containsThreeLevels() {
+        #expect(ReminderSettings.Sensitivity.allCases.count == 3)
+    }
+}
+
+// MARK: - Activity Prediction Tests
+
+struct ActivityPredictionTests {
+
+    @Test func activityPrediction_generateMessage_milk_includesTimeInfo() {
+        let message = ActivityPrediction.generateMessage(for: .milk, timeSinceLast: 7200) // 2 hours
+
+        #expect(message.contains("feeding"))
+        #expect(message.contains("2 hours"))
+    }
+
+    @Test func activityPrediction_generateMessage_sleep_includesTimeInfo() {
+        let message = ActivityPrediction.generateMessage(for: .sleep, timeSinceLast: 10800) // 3 hours
+
+        #expect(message.contains("sleepy") || message.contains("sleep"))
+        #expect(message.contains("3") || message.contains("hours"))
+    }
+
+    @Test func activityPrediction_generateMessage_diaper_includesTimeInfo() {
+        let message = ActivityPrediction.generateMessage(for: .wetDiaper, timeSinceLast: 3600) // 1 hour
+
+        #expect(message.contains("diaper"))
+    }
+
+    @Test func activityPrediction_timeUntil_futureTime_isPositive() {
+        let pattern = ActivityPattern(
+            activityKind: .milk,
+            typicalIntervalMinutes: 180.0,
+            confidenceScore: 0.7,
+            timeOfDayDistribution: [:],
+            sampleSize: 10,
+            lastUpdated: Date()
+        )
+
+        let prediction = ActivityPrediction(
+            activityKind: .milk,
+            predictedTime: Date().addingTimeInterval(3600), // 1 hour in future
+            confidence: 0.7,
+            basedOnPattern: pattern,
+            message: "Test message"
+        )
+
+        #expect(prediction.timeUntil > 0)
+        #expect(prediction.isOverdue == false)
+    }
+
+    @Test func activityPrediction_timeUntil_pastTime_isNegative() {
+        let pattern = ActivityPattern(
+            activityKind: .milk,
+            typicalIntervalMinutes: 180.0,
+            confidenceScore: 0.7,
+            timeOfDayDistribution: [:],
+            sampleSize: 10,
+            lastUpdated: Date()
+        )
+
+        let prediction = ActivityPrediction(
+            activityKind: .milk,
+            predictedTime: Date().addingTimeInterval(-3600), // 1 hour in past
+            confidence: 0.7,
+            basedOnPattern: pattern,
+            message: "Test message"
+        )
+
+        #expect(prediction.timeUntil < 0)
+        #expect(prediction.isOverdue == true)
+    }
+
+    @Test func activityPrediction_timeUntilDescription_inHours_formatsCorrectly() {
+        let pattern = ActivityPattern(
+            activityKind: .milk,
+            typicalIntervalMinutes: 180.0,
+            confidenceScore: 0.7,
+            timeOfDayDistribution: [:],
+            sampleSize: 10,
+            lastUpdated: Date()
+        )
+
+        let prediction = ActivityPrediction(
+            activityKind: .milk,
+            predictedTime: Date().addingTimeInterval(7200), // 2 hours
+            confidence: 0.7,
+            basedOnPattern: pattern,
+            message: "Test message"
+        )
+
+        let description = prediction.timeUntilDescription
+        #expect(description.contains("2h") || description.contains("1h"))
+    }
+}
+
+// MARK: - Scheduled Reminder Tests
+
+struct ScheduledReminderTests {
+
+    @Test func scheduledReminder_initialization_setsCorrectProperties() {
+        let reminder = ScheduledReminder(
+            activityKind: .milk,
+            scheduledTime: Date(),
+            message: "Time to feed",
+            isRepeating: false,
+            priority: .high
+        )
+
+        #expect(reminder.activityKind == .milk)
+        #expect(reminder.message == "Time to feed")
+        #expect(reminder.isRepeating == false)
+        #expect(reminder.priority == .high)
+    }
+
+    @Test func scheduledReminder_priority_highHasSound() {
+        #expect(ScheduledReminder.ReminderPriority.high.notificationSound == true)
+    }
+
+    @Test func scheduledReminder_priority_mediumHasSound() {
+        #expect(ScheduledReminder.ReminderPriority.medium.notificationSound == true)
+    }
+
+    @Test func scheduledReminder_priority_lowHasNoSound() {
+        #expect(ScheduledReminder.ReminderPriority.low.notificationSound == false)
+    }
+
+    @Test func scheduledReminder_priority_allCases_containsThreeLevels() {
+        #expect(ScheduledReminder.ReminderPriority.allCases.count == 3)
+    }
+}
+
+// MARK: - Pattern Analysis Tests
+
+@MainActor
+struct PatternAnalysisTests {
+
+    @Test func analyzeActivityPatterns_emptyInput_returnsEmpty() {
+        let patterns = DataController.analyzeActivityPatterns([])
+        #expect(patterns.isEmpty)
+    }
+
+    @Test func analyzeActivityPatterns_insufficientData_returnsEmpty() {
+        let today = Calendar.current.startOfDay(for: Date())
+        let activities = [
+            Activity(kind: .milk, timestamp: today, endTimestamp: today.addingTimeInterval(1800), amount: 100),
+            Activity(kind: .milk, timestamp: today.addingTimeInterval(3600), endTimestamp: today.addingTimeInterval(5400), amount: 100)
+        ]
+
+        // Default minimum sample size is 5
+        let patterns = DataController.analyzeActivityPatterns(activities)
+        #expect(patterns[.milk] == nil)
+    }
+
+    @Test func analyzeActivityPatterns_sufficientData_returnsPattern() {
+        let today = Calendar.current.startOfDay(for: Date())
+        var activities: [Activity] = []
+
+        // Create 6 milk activities with 2-hour intervals
+        for i in 0..<6 {
+            let timestamp = today.addingTimeInterval(Double(i) * 7200) // 2 hours apart
+            activities.append(Activity(kind: .milk, timestamp: timestamp, endTimestamp: timestamp.addingTimeInterval(1800), amount: 100))
+        }
+
+        let patterns = DataController.analyzeActivityPatterns(activities, minimumSampleSize: 5)
+
+        #expect(patterns[.milk] != nil)
+        if let milkPattern = patterns[.milk] {
+            #expect(milkPattern.activityKind == .milk)
+            #expect(milkPattern.sampleSize == 6)
+            // Interval should be around 90 minutes (2 hours - 30 min feeding = 90 min between end and start)
+            #expect(milkPattern.typicalIntervalMinutes > 0)
+        }
+    }
+
+    @Test func analyzeActivityPatterns_multipleKinds_returnsMultiplePatterns() {
+        let today = Calendar.current.startOfDay(for: Date())
+        var activities: [Activity] = []
+
+        // Create 6 milk activities
+        for i in 0..<6 {
+            let timestamp = today.addingTimeInterval(Double(i) * 7200)
+            activities.append(Activity(kind: .milk, timestamp: timestamp, endTimestamp: timestamp.addingTimeInterval(1800), amount: 100))
+        }
+
+        // Create 6 sleep activities
+        for i in 0..<6 {
+            let timestamp = today.addingTimeInterval(Double(i) * 14400) // 4 hours apart
+            activities.append(Activity(kind: .sleep, timestamp: timestamp, endTimestamp: timestamp.addingTimeInterval(3600)))
+        }
+
+        let patterns = DataController.analyzeActivityPatterns(activities, minimumSampleSize: 5)
+
+        #expect(patterns[.milk] != nil)
+        #expect(patterns[.sleep] != nil)
+    }
+
+    @Test func typicalFeedingIntervalMinutes_emptyInput_returnsNil() {
+        let result = DataController.typicalFeedingIntervalMinutes([])
+        #expect(result == nil)
+    }
+
+    @Test func typicalFeedingIntervalMinutes_singleFeeding_returnsNil() {
+        let today = Calendar.current.startOfDay(for: Date())
+        let activities = [
+            Activity(kind: .milk, timestamp: today, endTimestamp: today.addingTimeInterval(1800), amount: 100)
+        ]
+
+        let result = DataController.typicalFeedingIntervalMinutes(activities)
+        #expect(result == nil)
+    }
+
+    @Test func typicalFeedingIntervalMinutes_multipleFeedings_returnsMedian() {
+        let today = Calendar.current.startOfDay(for: Date())
+        let activities = [
+            Activity(kind: .milk, timestamp: today, endTimestamp: today.addingTimeInterval(1800), amount: 100),
+            Activity(kind: .milk, timestamp: today.addingTimeInterval(7200), endTimestamp: today.addingTimeInterval(9000), amount: 100), // 2 hours later
+            Activity(kind: .milk, timestamp: today.addingTimeInterval(14400), endTimestamp: today.addingTimeInterval(16200), amount: 100) // 2 hours later
+        ]
+
+        let result = DataController.typicalFeedingIntervalMinutes(activities)
+        #expect(result != nil)
+        if let interval = result {
+            // Should be around 120 minutes (2 hours)
+            #expect(interval == 120.0)
+        }
+    }
+
+    @Test func typicalSleepDurationMinutes_emptyInput_returnsNil() {
+        let result = DataController.typicalSleepDurationMinutes([])
+        #expect(result == nil)
+    }
+
+    @Test func typicalSleepDurationMinutes_insufficientData_returnsNil() {
+        let today = Calendar.current.startOfDay(for: Date())
+        let activities = [
+            Activity(kind: .sleep, timestamp: today, endTimestamp: today.addingTimeInterval(3600)),
+            Activity(kind: .sleep, timestamp: today.addingTimeInterval(7200), endTimestamp: today.addingTimeInterval(10800))
+        ]
+
+        // Needs at least 3 activities
+        let result = DataController.typicalSleepDurationMinutes(activities)
+        #expect(result == nil)
+    }
+
+    @Test func typicalSleepDurationMinutes_sufficientData_returnsMedian() {
+        let today = Calendar.current.startOfDay(for: Date())
+        let activities = [
+            Activity(kind: .sleep, timestamp: today, endTimestamp: today.addingTimeInterval(3600)), // 1 hour
+            Activity(kind: .sleep, timestamp: today.addingTimeInterval(7200), endTimestamp: today.addingTimeInterval(14400)), // 2 hours
+            Activity(kind: .sleep, timestamp: today.addingTimeInterval(21600), endTimestamp: today.addingTimeInterval(27000)) // 1.5 hours
+        ]
+
+        let result = DataController.typicalSleepDurationMinutes(activities)
+        #expect(result != nil)
+        if let duration = result {
+            // Median of [60, 90, 120] = 90
+            #expect(duration == 90.0)
+        }
+    }
+}

@@ -14,6 +14,10 @@ BabyActivity/
 │   ├── Baby.swift                    # Baby profile model with family sharing support
 │   ├── Growth.swift                  # Growth measurement model (weight, height, head)
 │   ├── Milestone.swift               # Milestone model with photo attachment support
+│   ├── ActivityPattern.swift         # Pattern analysis and reminder data structures
+│   ├── ActivityPredictor.swift       # Pattern learning and prediction engine
+│   ├── NotificationService.swift     # Local notification handling for smart reminders
+│   ├── FoundationModelService.swift  # On-device AI using Foundation Models (iOS 26+)
 │   ├── CloudKitService.swift         # iCloud and CloudKit operations service
 │   ├── DataController.swift          # Preview data, utilities, chart helpers, trends & analytics
 │   ├── MainView.swift                # Tab-based navigation container
@@ -24,6 +28,7 @@ BabyActivity/
 │   ├── SummaryView.swift             # Summary navigation hub
 │   ├── BabyProfileView.swift         # Baby profile management view
 │   ├── FamilySharingView.swift       # Family sharing and permissions management
+│   ├── RemindersSettingsView.swift   # Smart reminders configuration UI
 │   ├── SleepSummaryView.swift        # Sleep analytics with chart
 │   ├── MilkSummaryView.swift         # Milk/feeding analytics with charts
 │   ├── DiaperSummaryView.swift       # Diaper analytics with charts
@@ -43,6 +48,8 @@ BabyActivity/
 - **Data Persistence**: SwiftData (iOS 17+) with CloudKit sync
 - **Cloud Sync**: CloudKit for iCloud sync and family sharing
 - **Charts**: Apple Charts framework
+- **Notifications**: UserNotifications for smart reminders
+- **On-Device AI**: Foundation Models framework (iOS 26+) for pattern insights
 - **Pattern**: MVVM-like with SwiftUI's declarative approach
 - **External Dependencies**: None (100% native Apple frameworks)
 
@@ -198,6 +205,10 @@ public enum PermissionLevel: String, Codable, CaseIterable {
 24. **Family Sharing** - Share baby data with family members via iCloud
 25. **Permission Levels** - Admin, Caregiver, and Viewer access levels for family members
 26. **Contributor Attribution** - Track who logged each activity with contributor name display
+27. **Smart Reminders** - AI-powered pattern learning with predictive notifications
+28. **Pattern Analysis** - Learn typical feeding intervals, sleep patterns, diaper frequency
+29. **Configurable Alerts** - Enable/disable per activity type, sensitivity levels, quiet hours
+30. **Local Notifications** - Predictive reminders with snooze and log-from-notification actions
 
 ### Known Issues
 
@@ -283,6 +294,103 @@ struct DailyActivitySummary: Identifiable {
 | `activityHeatMapData()` | Groups activities by hour and day of week |
 | `dailyActivitySummaries()` | Aggregates all activity types by day |
 | `todaySummary()` | Returns today's aggregated summary |
+| `analyzeActivityPatterns()` | Learns patterns from historical activity data |
+| `typicalFeedingIntervalMinutes()` | Calculates median feeding interval |
+| `typicalSleepDurationMinutes()` | Calculates median sleep duration |
+
+### Smart Reminders Data Structures (`ActivityPattern.swift`)
+
+```swift
+/// Learned pattern for a specific activity type
+struct ActivityPattern: Identifiable, Codable {
+    var activityKind: ActivityKind
+    var typicalIntervalMinutes: Double
+    var confidenceScore: Double  // 0.0 to 1.0
+    var timeOfDayDistribution: [Int: Double]  // Hour -> Probability
+    var sampleSize: Int
+    var lastUpdated: Date
+}
+
+/// User settings for reminder behavior
+struct ReminderSettings: Codable {
+    var isEnabled: Bool
+    var enabledActivityKinds: Set<ActivityKind>
+    var sensitivity: Sensitivity  // .conservative, .balanced, .aggressive
+    var quietHoursEnabled: Bool
+    var quietHoursStart: Int  // Hour (0-23)
+    var quietHoursEnd: Int
+    var minimumConfidence: Double
+}
+
+/// Prediction result from the activity predictor
+struct ActivityPrediction: Identifiable {
+    var activityKind: ActivityKind
+    var predictedTime: Date
+    var confidence: Double
+    var basedOnPattern: ActivityPattern
+    var message: String
+}
+
+/// Scheduled reminder to be sent
+struct ScheduledReminder: Identifiable, Codable {
+    var activityKind: ActivityKind
+    var scheduledTime: Date
+    var message: String
+    var isRepeating: Bool
+    var priority: ReminderPriority  // .low, .medium, .high
+}
+```
+
+### ActivityPredictor (`ActivityPredictor.swift`)
+
+Pattern learning and prediction engine:
+
+| Function | Purpose |
+|----------|---------|
+| `analyzePatterns()` | Learns patterns from all activity types |
+| `analyzePattern(for:from:)` | Analyzes pattern for a specific activity kind |
+| `generatePredictions()` | Creates predictions based on learned patterns |
+| `predictNextActivity()` | Predicts when the next activity should occur |
+| `getScheduledReminders()` | Generates reminders based on predictions and settings |
+| `patternSummary()` | Returns human-readable summary of learned patterns |
+
+### NotificationService (`NotificationService.swift`)
+
+Singleton service for local notifications:
+
+| Function | Purpose |
+|----------|---------|
+| `requestAuthorization()` | Requests notification permissions |
+| `checkAuthorizationStatus()` | Checks current permission status |
+| `scheduleReminder()` | Schedules a single reminder notification |
+| `scheduleReminders()` | Schedules multiple reminders |
+| `cancelReminder()` | Cancels a specific reminder |
+| `cancelAllReminders()` | Cancels all pending reminders |
+| `snoozeReminder()` | Snoozes a reminder by 15 minutes |
+| `sendTestNotification()` | Sends test notification (debug) |
+
+**Notification Actions:**
+- `LOG_ACTIVITY` - Opens app to log the activity
+- `SNOOZE` - Snoozes reminder by 15 minutes
+- `DISMISS` - Dismisses the notification
+
+### FoundationModelService (`FoundationModelService.swift`)
+
+On-device AI service using Apple's Foundation Models framework (iOS 26+):
+
+| Function | Purpose |
+|----------|---------|
+| `checkAvailability()` | Checks if Foundation Models are available on device |
+| `analyzeActivityPatterns()` | Generates AI insights from activity data |
+| `generateSmartReminderMessage()` | Creates personalized reminder messages |
+| `analyzeSleepQuality()` | Analyzes sleep patterns and provides recommendations |
+| `predictOptimalTime()` | Predicts optimal time for next activity |
+
+**Key Features:**
+- All processing happens on-device for privacy
+- Graceful fallback when Foundation Models unavailable
+- Sleep quality scoring with suggestions
+- Natural language insights about baby's schedule
 
 ## UI Components
 
@@ -293,9 +401,10 @@ struct DailyActivitySummary: Identifiable {
 | `ContentView` | Activity list | Quick-add buttons (2 rows), list with navigation |
 | `ActivityListItemView` | List item | Icon, description, relative timestamp, contributor name |
 | `EditActivityView` | Detail editor | Dynamic forms based on ActivityKind |
-| `SummaryView` | Analytics hub | Organized sections: Profile, Core Activities, Development, Health |
+| `SummaryView` | Analytics hub | Organized sections: Profile, Core, Development, Health, Intelligence |
 | `BabyProfileView` | Profile management | Create/edit baby profiles, photo upload, family sharing access |
 | `FamilySharingView` | Family sharing | Invite members, manage permissions, view iCloud status |
+| `RemindersSettingsView` | Smart reminders | Pattern analysis, notification settings, quiet hours |
 | `SleepSummaryView` | Sleep analytics | Bar chart, day/night breakdown, longest stretch, quality badges |
 | `MilkSummaryView` | Milk analytics | Daily intake chart, feeding frequency, interval analysis |
 | `DiaperSummaryView` | Diaper analytics | Stacked bar chart (wet/dirty), hourly pattern distribution |
@@ -415,6 +524,11 @@ Singleton service for iCloud operations:
 | `ActivityContributorTests` | Contributor fields initialization and defaults |
 | `GrowthMeasurementContributorTests` | Contributor fields initialization and defaults |
 | `MilestoneContributorTests` | Contributor fields initialization and defaults |
+| `ActivityPatternTests` | Pattern initialization, interval formatting, confidence levels, peak hours |
+| `ReminderSettingsTests` | Default values, enabled checks, quiet hours, sensitivity levels |
+| `ActivityPredictionTests` | Message generation, time calculations, overdue detection |
+| `ScheduledReminderTests` | Initialization, priority sound settings |
+| `PatternAnalysisTests` | `analyzeActivityPatterns`, `typicalFeedingIntervalMinutes`, `typicalSleepDurationMinutes` |
 
 ### Testing Requirements
 
@@ -451,18 +565,18 @@ The Activity model includes validation for:
 
 ## Deployment
 
-- **Minimum iOS**: 18.0 (upgraded for latest Swift features)
-- **Minimum macOS**: 15.0
+- **Minimum iOS**: 26.0 (upgraded for Foundation Models framework)
+- **Minimum macOS**: 26.0
 - **Platforms**: iPhone and iPad
 - **Orientations**: Portrait and Landscape supported
 
 ## Not Yet Implemented
 
-- Push notifications / reminders
-- AI-based predictions
 - Data export/import
 - Widget support
 - Apple Watch companion
+- Siri Shortcuts integration
+- CarPlay support
 
 ## Code Conventions
 
