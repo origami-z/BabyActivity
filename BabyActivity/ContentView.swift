@@ -10,10 +10,11 @@ import SwiftData
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject var quickActionService: QuickActionService
     @Query(sort: \Activity.timestamp, order: .reverse) private var activities: [Activity]
     @State private var path = [Activity]()
-    
-    
+
+
     var body: some View {
         NavigationStack(path: $path) {
             VStack(spacing: 8) {
@@ -71,6 +72,18 @@ struct ContentView: View {
                     for activity in data {
                         modelContext.insert(activity)
                     }
+                }
+            }
+            .onChange(of: quickActionService.pendingActionKind) { _, newKind in
+                if let kind = newKind {
+                    addActivityFromQuickAction(kind: kind)
+                    quickActionService.pendingActionKind = nil
+                }
+            }
+            .onAppear {
+                if let kind = quickActionService.pendingActionKind {
+                    addActivityFromQuickAction(kind: kind)
+                    quickActionService.pendingActionKind = nil
                 }
             }
         }
@@ -139,6 +152,29 @@ struct ContentView: View {
         }
     }
 
+    private func addActivityFromQuickAction(kind: ActivityKind) {
+        withAnimation {
+            switch kind {
+            case .sleep:
+                addSleepActivity()
+            case .milk:
+                addMilkActivity()
+            case .wetDiaper:
+                addWetDiaperActivity()
+            case .dirtyDiaper:
+                addDirtyDiaperActivity()
+            case .solidFood:
+                addSolidFoodActivity()
+            case .tummyTime:
+                addTummyTimeActivity()
+            case .bathTime:
+                addBathTimeActivity()
+            case .medicine:
+                addMedicineActivity()
+            }
+        }
+    }
+
     private func deleteItems(offsets: IndexSet) {
         withAnimation {
             for index in offsets {
@@ -151,4 +187,5 @@ struct ContentView: View {
 #Preview {
     ContentView()
         .modelContainer(DataController.previewContainer)
+        .environmentObject(QuickActionService.shared)
 }

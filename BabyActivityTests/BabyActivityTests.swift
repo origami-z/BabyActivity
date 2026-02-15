@@ -2483,3 +2483,213 @@ struct PatternAnalysisTests {
         }
     }
 }
+
+// MARK: - Quick Action Service Tests
+
+@MainActor
+struct QuickActionShortcutItemTests {
+    @Test func shortcutItem_sleep_hasCorrectTypeAndTitle() {
+        let item = QuickActionService.shortcutItem(for: .sleep)
+        #expect(item.type == "com.babyactivity.quickaction.sleep")
+        #expect(item.localizedTitle == "Log Sleep")
+    }
+
+    @Test func shortcutItem_milk_hasCorrectTypeAndTitle() {
+        let item = QuickActionService.shortcutItem(for: .milk)
+        #expect(item.type == "com.babyactivity.quickaction.milk")
+        #expect(item.localizedTitle == "Log Milk")
+    }
+
+    @Test func shortcutItem_wetDiaper_hasCorrectTypeAndTitle() {
+        let item = QuickActionService.shortcutItem(for: .wetDiaper)
+        #expect(item.type == "com.babyactivity.quickaction.wetDiaper")
+        #expect(item.localizedTitle == "Log Wet Diaper")
+    }
+
+    @Test func shortcutItem_dirtyDiaper_hasCorrectTypeAndTitle() {
+        let item = QuickActionService.shortcutItem(for: .dirtyDiaper)
+        #expect(item.type == "com.babyactivity.quickaction.dirtyDiaper")
+        #expect(item.localizedTitle == "Log Dirty Diaper")
+    }
+
+    @Test func shortcutItem_solidFood_hasCorrectTypeAndTitle() {
+        let item = QuickActionService.shortcutItem(for: .solidFood)
+        #expect(item.type == "com.babyactivity.quickaction.solidFood")
+        #expect(item.localizedTitle == "Log Solid Food")
+    }
+
+    @Test func shortcutItem_tummyTime_hasCorrectTypeAndTitle() {
+        let item = QuickActionService.shortcutItem(for: .tummyTime)
+        #expect(item.type == "com.babyactivity.quickaction.tummyTime")
+        #expect(item.localizedTitle == "Log Tummy Time")
+    }
+
+    @Test func shortcutItem_bathTime_hasCorrectTypeAndTitle() {
+        let item = QuickActionService.shortcutItem(for: .bathTime)
+        #expect(item.type == "com.babyactivity.quickaction.bathTime")
+        #expect(item.localizedTitle == "Log Bath Time")
+    }
+
+    @Test func shortcutItem_medicine_hasCorrectTypeAndTitle() {
+        let item = QuickActionService.shortcutItem(for: .medicine)
+        #expect(item.type == "com.babyactivity.quickaction.medicine")
+        #expect(item.localizedTitle == "Log Medicine")
+    }
+
+    @Test func shortcutItem_allKinds_haveUniqueTypes() {
+        let items = ActivityKind.allCases.map { QuickActionService.shortcutItem(for: $0) }
+        let types = items.map { $0.type }
+        #expect(Set(types).count == ActivityKind.allCases.count)
+    }
+}
+
+@MainActor
+struct QuickActionKindParsingTests {
+    @Test func activityKind_validShortcutItem_returnsCorrectKind() {
+        for kind in ActivityKind.allCases {
+            let item = QuickActionService.shortcutItem(for: kind)
+            let parsed = QuickActionService.activityKind(from: item)
+            #expect(parsed == kind)
+        }
+    }
+
+    @Test func activityKind_invalidPrefix_returnsNil() {
+        let item = UIApplicationShortcutItem(type: "com.other.app.sleep", localizedTitle: "Sleep")
+        let parsed = QuickActionService.activityKind(from: item)
+        #expect(parsed == nil)
+    }
+
+    @Test func activityKind_invalidRawValue_returnsNil() {
+        let item = UIApplicationShortcutItem(
+            type: QuickActionService.shortcutTypePrefix + "nonexistent",
+            localizedTitle: "Invalid"
+        )
+        let parsed = QuickActionService.activityKind(from: item)
+        #expect(parsed == nil)
+    }
+
+    @Test func activityKind_emptyType_returnsNil() {
+        let item = UIApplicationShortcutItem(type: "", localizedTitle: "Empty")
+        let parsed = QuickActionService.activityKind(from: item)
+        #expect(parsed == nil)
+    }
+}
+
+@MainActor
+struct QuickActionTopKindsTests {
+    @Test func topActivityKinds_emptyActivities_returnsDefaults() {
+        let result = QuickActionService.topActivityKinds(from: [])
+        #expect(result == QuickActionService.defaultQuickActionKinds)
+    }
+
+    @Test func topActivityKinds_singleKind_returnsThatKind() {
+        let activities = [
+            Activity(kind: .sleep, timestamp: Date()),
+            Activity(kind: .sleep, timestamp: Date()),
+        ]
+        let result = QuickActionService.topActivityKinds(from: activities)
+        #expect(result.count == 1)
+        #expect(result[0] == .sleep)
+    }
+
+    @Test func topActivityKinds_multipleKinds_returnsMostFrequentFirst() {
+        let activities = [
+            Activity(kind: .milk, timestamp: Date()),
+            Activity(kind: .milk, timestamp: Date()),
+            Activity(kind: .milk, timestamp: Date()),
+            Activity(kind: .sleep, timestamp: Date()),
+            Activity(kind: .sleep, timestamp: Date()),
+            Activity(kind: .wetDiaper, timestamp: Date()),
+        ]
+        let result = QuickActionService.topActivityKinds(from: activities)
+        #expect(result.count == 3)
+        #expect(result[0] == .milk)
+        #expect(result[1] == .sleep)
+        #expect(result[2] == .wetDiaper)
+    }
+
+    @Test func topActivityKinds_moreThanLimit_returnsOnlyLimit() {
+        let activities = [
+            Activity(kind: .milk, timestamp: Date()),
+            Activity(kind: .sleep, timestamp: Date()),
+            Activity(kind: .wetDiaper, timestamp: Date()),
+            Activity(kind: .dirtyDiaper, timestamp: Date()),
+            Activity(kind: .solidFood, timestamp: Date()),
+            Activity(kind: .tummyTime, timestamp: Date()),
+        ]
+        let result = QuickActionService.topActivityKinds(from: activities, limit: 4)
+        #expect(result.count == 4)
+    }
+
+    @Test func topActivityKinds_customLimit_respectsLimit() {
+        let activities = [
+            Activity(kind: .milk, timestamp: Date()),
+            Activity(kind: .sleep, timestamp: Date()),
+            Activity(kind: .wetDiaper, timestamp: Date()),
+        ]
+        let result = QuickActionService.topActivityKinds(from: activities, limit: 2)
+        #expect(result.count == 2)
+    }
+
+    @Test func topActivityKinds_defaultLimit_isFour() {
+        let activities = [
+            Activity(kind: .milk, timestamp: Date()),
+            Activity(kind: .milk, timestamp: Date()),
+            Activity(kind: .sleep, timestamp: Date()),
+            Activity(kind: .sleep, timestamp: Date()),
+            Activity(kind: .wetDiaper, timestamp: Date()),
+            Activity(kind: .wetDiaper, timestamp: Date()),
+            Activity(kind: .dirtyDiaper, timestamp: Date()),
+            Activity(kind: .dirtyDiaper, timestamp: Date()),
+            Activity(kind: .solidFood, timestamp: Date()),
+        ]
+        let result = QuickActionService.topActivityKinds(from: activities)
+        #expect(result.count == 4)
+    }
+}
+
+@MainActor
+struct QuickActionShortcutTitleTests {
+    @Test func shortcutTitle_allKinds_startsWithLog() {
+        for kind in ActivityKind.allCases {
+            let title = QuickActionService.shortcutTitle(for: kind)
+            #expect(title.hasPrefix("Log "))
+        }
+    }
+
+    @Test func shortcutTitle_allKinds_areNonEmpty() {
+        for kind in ActivityKind.allCases {
+            let title = QuickActionService.shortcutTitle(for: kind)
+            #expect(!title.isEmpty)
+        }
+    }
+}
+
+@MainActor
+struct QuickActionHandleShortcutTests {
+    @Test func handleShortcutItem_validItem_setsPendingAction() {
+        let service = QuickActionService()
+        let item = QuickActionService.shortcutItem(for: .milk)
+        let handled = service.handleShortcutItem(item)
+        #expect(handled == true)
+        #expect(service.pendingActionKind == .milk)
+    }
+
+    @Test func handleShortcutItem_invalidItem_returnsFalse() {
+        let service = QuickActionService()
+        let item = UIApplicationShortcutItem(type: "com.other.action", localizedTitle: "Other")
+        let handled = service.handleShortcutItem(item)
+        #expect(handled == false)
+        #expect(service.pendingActionKind == nil)
+    }
+
+    @Test func handleShortcutItem_allKinds_setsCorrectPendingAction() {
+        for kind in ActivityKind.allCases {
+            let service = QuickActionService()
+            let item = QuickActionService.shortcutItem(for: kind)
+            let handled = service.handleShortcutItem(item)
+            #expect(handled == true)
+            #expect(service.pendingActionKind == kind)
+        }
+    }
+}
