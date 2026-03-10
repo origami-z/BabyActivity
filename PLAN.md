@@ -351,6 +351,10 @@ class ActivityPredictor: ObservableObject {
 
 - [ ] Voice-activated logging while driving
 
+### 7.7 Home Screen dynamic quick action
+
+- [ ] Quickly log top activities
+
 ---
 
 ## Technical Debt & Maintenance
